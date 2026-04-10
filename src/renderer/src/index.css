@@ -411,6 +411,7 @@
 
 dock-wrapper {
   --dock-bg: transparent;
+  --gap: 6px;
 }
 
 dock-item {

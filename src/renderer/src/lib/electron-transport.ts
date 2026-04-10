@@ -2,6 +2,7 @@ import type { UseStreamTransport } from "@langchain/langgraph-sdk/react"
 import type { ToolCall, ToolCallChunk } from "@langchain/core/messages"
 import type { StreamPayload, StreamEvent, IPCEvent, IPCStreamEvent } from "../../../types"
 import type { Subagent } from "../types"
+import { useAppStore } from "./store"
 
 /**
  * Usage metadata from LangChain model responses.
@@ -164,7 +165,6 @@ export class ElectronIPCTransport implements UseStreamTransport {
       }
     }
 
-    // Start the stream via IPC (pass modelId to use the selected model)
     const cleanup = window.api.agent.streamAgent(
       threadId,
       message,
@@ -190,7 +190,18 @@ export class ElectronIPCTransport implements UseStreamTransport {
           }
         }
       },
-      modelId
+      modelId,
+      useAppStore
+        .getState()
+        .orderedAgentEndpoints()
+        .filter((ep) => ep.removable)
+        .map((ep) => ({
+          id: ep.id,
+          name: ep.name,
+          url: ep.url,
+          graphId: ep.graphId,
+          apiKey: ep.bearerToken || undefined
+        }))
     )
 
     // Handle abort signal

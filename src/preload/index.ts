@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron"
-import type { Thread, ModelConfig, Provider, StreamEvent, HITLDecision } from "../main/types"
+import type {
+  Thread,
+  ModelConfig,
+  Provider,
+  StreamEvent,
+  HITLDecision,
+  RemoteAgentConfig
+} from "../main/types"
 import type { AgentEndpoint } from "../renderer/src/types"
 
 // Simple electron API - replaces @electron-toolkit/preload
@@ -54,7 +61,8 @@ const api = {
       message: string,
       command: unknown,
       onEvent: (event: StreamEvent) => void,
-      modelId?: string
+      modelId?: string,
+      agentEndpoints?: RemoteAgentConfig[]
     ): (() => void) => {
       const channel = `agent:stream:${threadId}`
 
@@ -67,11 +75,10 @@ const api = {
 
       ipcRenderer.on(channel, handler)
 
-      // If we have a command, it might be a resume/retry
       if (command) {
-        ipcRenderer.send("agent:resume", { threadId, command, modelId })
+        ipcRenderer.send("agent:resume", { threadId, command, modelId, agentEndpoints })
       } else {
-        ipcRenderer.send("agent:invoke", { threadId, message, modelId })
+        ipcRenderer.send("agent:invoke", { threadId, message, modelId, agentEndpoints })
       }
 
       // Return cleanup function

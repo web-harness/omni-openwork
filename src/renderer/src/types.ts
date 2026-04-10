@@ -137,6 +137,7 @@ export interface AgentEndpoint {
   url: string
   bearerToken: string
   name: string
+  graphId?: string
   /** true = user-added agent, false = built-in main agent */
   removable: boolean
 }

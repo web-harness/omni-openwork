@@ -107,6 +107,9 @@ function getModelInstance(
   return model
 }
 
+import { RemoteGraph } from "@langchain/langgraph/remote"
+import type { RemoteAgentConfig } from "../types"
+
 export interface CreateAgentRuntimeOptions {
   /** Thread ID - REQUIRED for per-thread checkpointing */
   threadId: string
@@ -114,13 +117,14 @@ export interface CreateAgentRuntimeOptions {
   modelId?: string
   /** Workspace path - REQUIRED for agent to operate on files */
   workspacePath: string
+  agentEndpoints?: RemoteAgentConfig[]
 }
 
 // Create agent runtime with configured model and checkpointer
 export type AgentRuntime = ReturnType<typeof createDeepAgent>
 
 export async function createAgentRuntime(options: CreateAgentRuntimeOptions) {
-  const { threadId, modelId, workspacePath } = options
+  const { threadId, modelId, workspacePath, agentEndpoints } = options
 
   if (!threadId) {
     throw new Error("Thread ID is required for checkpointing.")
@@ -163,6 +167,16 @@ export async function createAgentRuntime(options: CreateAgentRuntimeOptions) {
 
 The workspace root is: ${workspacePath}`
 
+  const subagents = (agentEndpoints ?? []).map((ep) => ({
+    name: ep.name,
+    description: `Remote LangGraph agent: ${ep.name} at ${ep.url}`,
+    runnable: new RemoteGraph({
+      graphId: ep.graphId ?? "agent",
+      url: ep.url,
+      ...(ep.apiKey ? { apiKey: ep.apiKey } : {})
+    })
+  }))
+
   const agent = createDeepAgent({
     model,
     checkpointer,
@@ -171,7 +185,8 @@ The workspace root is: ${workspacePath}`
     // Custom filesystem prompt for absolute paths (requires deepagents update)
     filesystemSystemPrompt,
     // Require human approval for all shell commands
-    interruptOn: { execute: true }
+    interruptOn: { execute: true },
+    ...(subagents.length > 0 ? { subagents } : {})
   } as Parameters<typeof createDeepAgent>[0])
 
   console.log("[Runtime] Deep agent created with LocalSandbox at:", workspacePath)

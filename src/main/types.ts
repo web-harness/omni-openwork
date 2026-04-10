@@ -6,16 +6,26 @@ export type ThreadStatus = "idle" | "busy" | "interrupted" | "error"
 // =============================================================================
 
 // Agent IPC
+export interface RemoteAgentConfig {
+  id: string
+  name: string
+  url: string
+  graphId?: string
+  apiKey?: string
+}
+
 export interface AgentInvokeParams {
   threadId: string
   message: string
   modelId?: string
+  agentEndpoints?: RemoteAgentConfig[]
 }
 
 export interface AgentResumeParams {
   threadId: string
   command: { resume?: { decision?: string } }
   modelId?: string
+  agentEndpoints?: RemoteAgentConfig[]
 }
 
 export interface AgentInterruptParams {

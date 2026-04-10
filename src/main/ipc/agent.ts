@@ -2,7 +2,7 @@ import { IpcMain, BrowserWindow } from "electron"
 import { HumanMessage } from "@langchain/core/messages"
 import { Command } from "@langchain/langgraph"
 import { createAgentRuntime } from "../agent/runtime"
-import { getThread } from "../db"
+import { getThread, updateThread } from "../db"
 import type {
   AgentInvokeParams,
   AgentResumeParams,
@@ -17,195 +17,205 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
   console.log("[Agent] Registering agent handlers...")
 
   // Handle agent invocation with streaming
-  ipcMain.on("agent:invoke", async (event, { threadId, message, modelId }: AgentInvokeParams) => {
-    const channel = `agent:stream:${threadId}`
-    const window = BrowserWindow.fromWebContents(event.sender)
+  ipcMain.on(
+    "agent:invoke",
+    async (event, { threadId, message, modelId, agentEndpoints }: AgentInvokeParams) => {
+      const channel = `agent:stream:${threadId}`
+      const window = BrowserWindow.fromWebContents(event.sender)
 
-    console.log("[Agent] Received invoke request:", {
-      threadId,
-      message: message.substring(0, 50),
-      modelId
-    })
+      console.log("[Agent] Received invoke request:", {
+        threadId,
+        message: message.substring(0, 50),
+        modelId
+      })
 
-    if (!window) {
-      console.error("[Agent] No window found")
-      return
+      if (!window) {
+        console.error("[Agent] No window found")
+        return
+      }
+
+      // Abort any existing stream for this thread before starting a new one
+      // This prevents concurrent streams which can cause checkpoint corruption
+      const existingController = activeRuns.get(threadId)
+      if (existingController) {
+        console.log("[Agent] Aborting existing stream for thread:", threadId)
+        existingController.abort()
+        activeRuns.delete(threadId)
+      }
+
+      const abortController = new AbortController()
+      activeRuns.set(threadId, abortController)
+
+      // Abort the stream if the window is closed/destroyed
+      const onWindowClosed = (): void => {
+        console.log("[Agent] Window closed, aborting stream for thread:", threadId)
+        abortController.abort()
+      }
+      window.once("closed", onWindowClosed)
+
+      try {
+        // Get workspace path from thread metadata - REQUIRED
+        const thread = getThread(threadId)
+        const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
+        console.log("[Agent] Thread metadata:", metadata)
+
+        const workspacePath = metadata.workspacePath as string | undefined
+
+        if (!workspacePath) {
+          window.webContents.send(channel, {
+            type: "error",
+            error: "WORKSPACE_REQUIRED",
+            message: "Please select a workspace folder before sending messages."
+          })
+          return
+        }
+
+        if (agentEndpoints?.length) {
+          updateThread(threadId, { metadata: JSON.stringify({ ...metadata, agentEndpoints }) })
+        }
+
+        const agent = await createAgentRuntime({ threadId, workspacePath, modelId, agentEndpoints })
+        const humanMessage = new HumanMessage(message)
+
+        // Stream with both modes:
+        // - 'messages' for real-time token streaming
+        // - 'values' for full state (todos, files, etc.)
+        const stream = await agent.stream(
+          { messages: [humanMessage] },
+          {
+            configurable: { thread_id: threadId },
+            signal: abortController.signal,
+            streamMode: ["messages", "values"],
+            recursionLimit: 1000
+          }
+        )
+
+        for await (const chunk of stream) {
+          if (abortController.signal.aborted) break
+
+          // With multiple stream modes, chunks are tuples: [mode, data]
+          const [mode, data] = chunk as [string, unknown]
+
+          // Forward raw stream events - transport layer handles parsing
+          // Serialize to plain objects for IPC (class instances don't transfer)
+          window.webContents.send(channel, {
+            type: "stream",
+            mode,
+            data: JSON.parse(JSON.stringify(data))
+          })
+        }
+
+        // Send done event (only if not aborted)
+        if (!abortController.signal.aborted) {
+          window.webContents.send(channel, { type: "done" })
+        }
+      } catch (error) {
+        // Ignore abort-related errors (expected when stream is cancelled)
+        const isAbortError =
+          error instanceof Error &&
+          (error.name === "AbortError" ||
+            error.message.includes("aborted") ||
+            error.message.includes("Controller is already closed"))
+
+        if (!isAbortError) {
+          console.error("[Agent] Error:", error)
+          window.webContents.send(channel, {
+            type: "error",
+            error: error instanceof Error ? error.message : "Unknown error"
+          })
+        }
+      } finally {
+        window.removeListener("closed", onWindowClosed)
+        activeRuns.delete(threadId)
+      }
     }
+  )
 
-    // Abort any existing stream for this thread before starting a new one
-    // This prevents concurrent streams which can cause checkpoint corruption
-    const existingController = activeRuns.get(threadId)
-    if (existingController) {
-      console.log("[Agent] Aborting existing stream for thread:", threadId)
-      existingController.abort()
-      activeRuns.delete(threadId)
-    }
+  // Handle agent resume (after interrupt approval/rejection via useStream)
+  ipcMain.on(
+    "agent:resume",
+    async (event, { threadId, command, modelId, agentEndpoints }: AgentResumeParams) => {
+      const channel = `agent:stream:${threadId}`
+      const window = BrowserWindow.fromWebContents(event.sender)
 
-    const abortController = new AbortController()
-    activeRuns.set(threadId, abortController)
+      console.log("[Agent] Received resume request:", { threadId, command, modelId })
 
-    // Abort the stream if the window is closed/destroyed
-    const onWindowClosed = (): void => {
-      console.log("[Agent] Window closed, aborting stream for thread:", threadId)
-      abortController.abort()
-    }
-    window.once("closed", onWindowClosed)
+      if (!window) {
+        console.error("[Agent] No window found for resume")
+        return
+      }
 
-    try {
-      // Get workspace path from thread metadata - REQUIRED
+      // Get workspace path from thread metadata
       const thread = getThread(threadId)
       const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
-      console.log("[Agent] Thread metadata:", metadata)
-
       const workspacePath = metadata.workspacePath as string | undefined
 
       if (!workspacePath) {
         window.webContents.send(channel, {
           type: "error",
-          error: "WORKSPACE_REQUIRED",
-          message: "Please select a workspace folder before sending messages."
+          error: "Workspace path is required"
         })
         return
       }
 
-      const agent = await createAgentRuntime({ threadId, workspacePath, modelId })
-      const humanMessage = new HumanMessage(message)
+      // Abort any existing stream before resuming
+      const existingController = activeRuns.get(threadId)
+      if (existingController) {
+        existingController.abort()
+        activeRuns.delete(threadId)
+      }
 
-      // Stream with both modes:
-      // - 'messages' for real-time token streaming
-      // - 'values' for full state (todos, files, etc.)
-      const stream = await agent.stream(
-        { messages: [humanMessage] },
-        {
+      const abortController = new AbortController()
+      activeRuns.set(threadId, abortController)
+
+      try {
+        const agent = await createAgentRuntime({ threadId, workspacePath, modelId, agentEndpoints })
+        const config = {
           configurable: { thread_id: threadId },
           signal: abortController.signal,
-          streamMode: ["messages", "values"],
+          streamMode: ["messages", "values"] as const,
           recursionLimit: 1000
         }
-      )
 
-      for await (const chunk of stream) {
-        if (abortController.signal.aborted) break
+        // Resume from checkpoint by streaming with Command containing the decision
+        // The HITL middleware expects { decisions: [{ type: 'approve' | 'reject' | 'edit' }] }
+        const decisionType = command?.resume?.decision || "approve"
+        const resumeValue = { decisions: [{ type: decisionType }] }
+        const stream = await agent.stream(new Command({ resume: resumeValue }), config)
 
-        // With multiple stream modes, chunks are tuples: [mode, data]
-        const [mode, data] = chunk as [string, unknown]
+        for await (const chunk of stream) {
+          if (abortController.signal.aborted) break
 
-        // Forward raw stream events - transport layer handles parsing
-        // Serialize to plain objects for IPC (class instances don't transfer)
-        window.webContents.send(channel, {
-          type: "stream",
-          mode,
-          data: JSON.parse(JSON.stringify(data))
-        })
+          const [mode, data] = chunk as unknown as [string, unknown]
+          window.webContents.send(channel, {
+            type: "stream",
+            mode,
+            data: JSON.parse(JSON.stringify(data))
+          })
+        }
+
+        if (!abortController.signal.aborted) {
+          window.webContents.send(channel, { type: "done" })
+        }
+      } catch (error) {
+        const isAbortError =
+          error instanceof Error &&
+          (error.name === "AbortError" ||
+            error.message.includes("aborted") ||
+            error.message.includes("Controller is already closed"))
+
+        if (!isAbortError) {
+          console.error("[Agent] Resume error:", error)
+          window.webContents.send(channel, {
+            type: "error",
+            error: error instanceof Error ? error.message : "Unknown error"
+          })
+        }
+      } finally {
+        activeRuns.delete(threadId)
       }
-
-      // Send done event (only if not aborted)
-      if (!abortController.signal.aborted) {
-        window.webContents.send(channel, { type: "done" })
-      }
-    } catch (error) {
-      // Ignore abort-related errors (expected when stream is cancelled)
-      const isAbortError =
-        error instanceof Error &&
-        (error.name === "AbortError" ||
-          error.message.includes("aborted") ||
-          error.message.includes("Controller is already closed"))
-
-      if (!isAbortError) {
-        console.error("[Agent] Error:", error)
-        window.webContents.send(channel, {
-          type: "error",
-          error: error instanceof Error ? error.message : "Unknown error"
-        })
-      }
-    } finally {
-      window.removeListener("closed", onWindowClosed)
-      activeRuns.delete(threadId)
     }
-  })
-
-  // Handle agent resume (after interrupt approval/rejection via useStream)
-  ipcMain.on("agent:resume", async (event, { threadId, command, modelId }: AgentResumeParams) => {
-    const channel = `agent:stream:${threadId}`
-    const window = BrowserWindow.fromWebContents(event.sender)
-
-    console.log("[Agent] Received resume request:", { threadId, command, modelId })
-
-    if (!window) {
-      console.error("[Agent] No window found for resume")
-      return
-    }
-
-    // Get workspace path from thread metadata
-    const thread = getThread(threadId)
-    const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
-    const workspacePath = metadata.workspacePath as string | undefined
-
-    if (!workspacePath) {
-      window.webContents.send(channel, {
-        type: "error",
-        error: "Workspace path is required"
-      })
-      return
-    }
-
-    // Abort any existing stream before resuming
-    const existingController = activeRuns.get(threadId)
-    if (existingController) {
-      existingController.abort()
-      activeRuns.delete(threadId)
-    }
-
-    const abortController = new AbortController()
-    activeRuns.set(threadId, abortController)
-
-    try {
-      const agent = await createAgentRuntime({ threadId, workspacePath, modelId })
-      const config = {
-        configurable: { thread_id: threadId },
-        signal: abortController.signal,
-        streamMode: ["messages", "values"] as const,
-        recursionLimit: 1000
-      }
-
-      // Resume from checkpoint by streaming with Command containing the decision
-      // The HITL middleware expects { decisions: [{ type: 'approve' | 'reject' | 'edit' }] }
-      const decisionType = command?.resume?.decision || "approve"
-      const resumeValue = { decisions: [{ type: decisionType }] }
-      const stream = await agent.stream(new Command({ resume: resumeValue }), config)
-
-      for await (const chunk of stream) {
-        if (abortController.signal.aborted) break
-
-        const [mode, data] = chunk as unknown as [string, unknown]
-        window.webContents.send(channel, {
-          type: "stream",
-          mode,
-          data: JSON.parse(JSON.stringify(data))
-        })
-      }
-
-      if (!abortController.signal.aborted) {
-        window.webContents.send(channel, { type: "done" })
-      }
-    } catch (error) {
-      const isAbortError =
-        error instanceof Error &&
-        (error.name === "AbortError" ||
-          error.message.includes("aborted") ||
-          error.message.includes("Controller is already closed"))
-
-      if (!isAbortError) {
-        console.error("[Agent] Resume error:", error)
-        window.webContents.send(channel, {
-          type: "error",
-          error: error instanceof Error ? error.message : "Unknown error"
-        })
-      }
-    } finally {
-      activeRuns.delete(threadId)
-    }
-  })
+  )
 
   // Handle HITL interrupt response
   ipcMain.on("agent:interrupt", async (event, { threadId, decision }: AgentInterruptParams) => {
@@ -222,6 +232,9 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
     const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
     const workspacePath = metadata.workspacePath as string | undefined
     const modelId = metadata.model as string | undefined
+    const agentEndpoints = metadata.agentEndpoints as
+      | import("../types").RemoteAgentConfig[]
+      | undefined
 
     if (!workspacePath) {
       window.webContents.send(channel, {
@@ -242,7 +255,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
     activeRuns.set(threadId, abortController)
 
     try {
-      const agent = await createAgentRuntime({ threadId, workspacePath, modelId })
+      const agent = await createAgentRuntime({ threadId, workspacePath, modelId, agentEndpoints })
       const config = {
         configurable: { thread_id: threadId },
         signal: abortController.signal,

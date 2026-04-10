@@ -55,7 +55,7 @@ function AgentItem({
     : null
 
   return (
-    <dock-item>
+    <dock-item size={36} gap={6}>
       <div
         className="dock-btn-wrap group/item"
         onMouseEnter={onMouseEnter}
@@ -143,6 +143,17 @@ function AddAgentDockItem(): React.JSX.Element {
       return
     }
 
+    try {
+      const parsed = new URL(url)
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        setError("Agent URL must use http or https.")
+        return
+      }
+    } catch {
+      setError("Agent URL must be a valid URL (e.g. http://localhost:8080).")
+      return
+    }
+
     const id = `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     upsertAgentEndpoint({ id, name, url, bearerToken: form.bearerToken.trim(), removable: true })
     setActiveAgentId(id)
@@ -160,7 +171,7 @@ function AddAgentDockItem(): React.JSX.Element {
   }
 
   return (
-    <dock-item>
+    <dock-item size={36} gap={6}>
       <div className="dock-btn-wrap">
         <Popover open={open} onOpenChange={handleOpenChange}>
           <PopoverTrigger asChild>
@@ -222,7 +233,7 @@ function AddAgentDockItem(): React.JSX.Element {
                   />
                 </div>
 
-                {error && <p className="text-xs text-status-error">{error}</p>}
+                {error && <p className="text-xs text-status-critical">{error}</p>}
               </div>
 
               <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
@@ -256,19 +267,22 @@ export function AgentRail(): React.JSX.Element {
     removeAgentEndpoint
   } = useAppStore()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [dockHovered, setDockHovered] = useState(false)
 
   const endpoints = orderedAgentEndpoints()
 
   return (
     <div
       className="agent-rail flex h-full flex-col items-center"
-      style={{ width: 52, flexShrink: 0 }}
+      style={{ width: 48, flexShrink: 0, overflow: dockHovered ? "visible" : "hidden" }}
+      onMouseEnter={() => setDockHovered(true)}
+      onMouseLeave={() => setDockHovered(false)}
     >
       <dock-wrapper
         direction="vertical"
         position="left"
         size="36"
-        gap="8"
+        gap="6"
         padding="6"
         max-range="150"
         max-scale="1.8"
