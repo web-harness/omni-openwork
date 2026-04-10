@@ -22,11 +22,11 @@ function ThreadStatusIcon({ threadId }: { threadId: string }): React.JSX.Element
   if (isLoading) {
     return <Loader2 className="size-4 shrink-0 text-status-info animate-spin" />
   }
-  
+
   if (pendingApproval) {
     return <AlertCircle className="size-4 shrink-0 text-status-warning" />
   }
-  
+
   return <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
 }
 

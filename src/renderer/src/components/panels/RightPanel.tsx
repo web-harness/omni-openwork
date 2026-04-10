@@ -868,8 +868,7 @@ const FileTreeNode = memo(
     // 4. The onToggle callback changed
     return (
       prevProps.node === nextProps.node &&
-      prevProps.expanded.has(prevProps.node.path) ===
-        nextProps.expanded.has(nextProps.node.path) &&
+      prevProps.expanded.has(prevProps.node.path) === nextProps.expanded.has(nextProps.node.path) &&
       prevProps.openFile === nextProps.openFile &&
       prevProps.onToggle === nextProps.onToggle &&
       prevProps.depth === nextProps.depth
