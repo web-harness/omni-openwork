@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron"
 import type { Thread, ModelConfig, Provider, StreamEvent, HITLDecision } from "../main/types"
+import type { AgentEndpoint } from "../renderer/src/types"
 
 // Simple electron API - replaces @electron-toolkit/preload
 const electronAPI = {
@@ -211,6 +212,17 @@ const api = {
       return () => {
         ipcRenderer.removeListener("workspace:files-changed", handler)
       }
+    }
+  },
+  agentEndpoints: {
+    list: (): Promise<AgentEndpoint[]> => {
+      return ipcRenderer.invoke("agentEndpoints:list")
+    },
+    upsert: (endpoint: AgentEndpoint): Promise<AgentEndpoint> => {
+      return ipcRenderer.invoke("agentEndpoints:upsert", endpoint)
+    },
+    delete: (id: string): Promise<void> => {
+      return ipcRenderer.invoke("agentEndpoints:delete", id)
     }
   }
 }

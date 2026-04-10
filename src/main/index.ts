@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
 import { registerAgentHandlers } from "./ipc/agent"
+import { registerAgentEndpointHandlers } from "./ipc/agent-endpoints"
 import { registerThreadHandlers } from "./ipc/threads"
 import { registerModelHandlers } from "./ipc/models"
 import { initializeDatabase } from "./db"
@@ -83,6 +84,7 @@ app.whenReady().then(async () => {
 
   // Register IPC handlers
   registerAgentHandlers(ipcMain)
+  registerAgentEndpointHandlers(ipcMain)
   registerThreadHandlers(ipcMain)
   registerModelHandlers(ipcMain)
 

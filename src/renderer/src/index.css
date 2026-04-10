@@ -401,6 +401,38 @@
   line-height: 1;
 }
 
+/* Agent Rail - dockbar web component styles */
+.agent-rail {
+  position: relative;
+  z-index: 40;
+  background-color: var(--sidebar);
+  border-right: 1px solid var(--border);
+}
+
+dock-wrapper {
+  --dock-bg: transparent;
+}
+
+dock-item {
+  display: block;
+}
+
+.dock-btn-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.dock-btn-wrap > button {
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Hide flash before dock-wrapper upgrades */
+dock-wrapper:not(:defined) {
+  visibility: hidden;
+}
+
 /* Shiki syntax highlighting styles */
 .shiki-wrapper {
   font-size: 0.875rem;

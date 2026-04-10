@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react"
 import { ThreadSidebar } from "@/components/sidebar/ThreadSidebar"
+import { AgentRail } from "@/components/sidebar/AgentRail"
 import { TabbedPanel, TabBar } from "@/components/tabs"
 import { RightPanel } from "@/components/panels/RightPanel"
 import { KanbanView, KanbanHeader } from "@/components/kanban"
@@ -17,7 +18,7 @@ const RIGHT_MAX = 450
 const RIGHT_DEFAULT = 320
 
 function App(): React.JSX.Element {
-  const { currentThreadId, loadThreads, showKanbanView } = useAppStore()
+  const { currentThreadId, loadThreads, loadAgentEndpoints, showKanbanView } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
   const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
@@ -99,7 +100,7 @@ function App(): React.JSX.Element {
 
     async function init(): Promise<void> {
       try {
-        await loadThreads()
+        await Promise.all([loadThreads(), loadAgentEndpoints()])
       } catch (error) {
         console.error("Failed to initialize:", error)
       } finally {
@@ -107,7 +108,7 @@ function App(): React.JSX.Element {
       }
     }
     init()
-  }, [loadThreads])
+  }, [loadThreads, loadAgentEndpoints])
 
   if (isLoading) {
     return (
@@ -120,6 +121,9 @@ function App(): React.JSX.Element {
   return (
     <ThreadProvider>
       <div className="flex h-screen overflow-hidden bg-background">
+        {/* Agent Rail - fixed vertical dockbar */}
+        <AgentRail />
+
         {/* Fixed app badge - zoom independent position and size */}
         <div
           className="app-badge"

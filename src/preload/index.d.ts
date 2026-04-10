@@ -1,4 +1,5 @@
 import type { Thread, ModelConfig, Provider, StreamEvent, HITLDecision } from "../main/types"
+import type { AgentEndpoint } from "../renderer/src/types"
 
 interface ElectronAPI {
   ipcRenderer: {
@@ -91,6 +92,11 @@ interface CustomAPI {
     onFilesChanged: (
       callback: (data: { threadId: string; workspacePath: string }) => void
     ) => () => void
+  }
+  agentEndpoints: {
+    list: () => Promise<AgentEndpoint[]>
+    upsert: (endpoint: AgentEndpoint) => Promise<AgentEndpoint>
+    delete: (id: string) => Promise<void>
   }
 }
 

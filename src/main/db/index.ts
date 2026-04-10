@@ -111,6 +111,18 @@ export async function initializeDatabase(): Promise<SqlJsDatabase> {
   db.run(`CREATE INDEX IF NOT EXISTS idx_runs_thread_id ON runs(thread_id)`)
   db.run(`CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status)`)
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS agent_endpoints (
+      id TEXT PRIMARY KEY,
+      url TEXT NOT NULL DEFAULT '',
+      bearer_token TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL,
+      removable INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `)
+
   saveToDisk()
 
   console.log("Database initialized successfully")
@@ -241,5 +253,73 @@ export function updateThread(
 export function deleteThread(threadId: string): void {
   const database = getDb()
   database.run("DELETE FROM threads WHERE thread_id = ?", [threadId])
+  saveToDisk()
+}
+
+export interface AgentEndpointRow {
+  id: string
+  url: string
+  bearer_token: string
+  name: string
+  /** SQLite boolean: 0 = built-in, 1 = user-added */
+  removable: number
+  created_at: number
+  updated_at: number
+}
+
+export function getAllAgentEndpoints(): AgentEndpointRow[] {
+  const database = getDb()
+  const stmt = database.prepare("SELECT * FROM agent_endpoints ORDER BY created_at ASC")
+  const rows: AgentEndpointRow[] = []
+
+  while (stmt.step()) {
+    rows.push(stmt.getAsObject() as unknown as AgentEndpointRow)
+  }
+  stmt.free()
+
+  return rows
+}
+
+export function upsertAgentEndpoint(
+  id: string,
+  data: { url: string; bearerToken: string; name: string; removable: boolean }
+): AgentEndpointRow {
+  const database = getDb()
+  const now = Date.now()
+
+  const stmt = database.prepare("SELECT id FROM agent_endpoints WHERE id = ?")
+  stmt.bind([id])
+  const exists = stmt.step()
+  stmt.free()
+
+  if (exists) {
+    database.run(
+      `UPDATE agent_endpoints SET url = ?, bearer_token = ?, name = ?, removable = ?, updated_at = ? WHERE id = ?`,
+      [data.url, data.bearerToken, data.name, data.removable ? 1 : 0, now, id]
+    )
+  } else {
+    database.run(
+      `INSERT INTO agent_endpoints (id, url, bearer_token, name, removable, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id, data.url, data.bearerToken, data.name, data.removable ? 1 : 0, now, now]
+    )
+  }
+
+  saveToDisk()
+
+  return {
+    id,
+    url: data.url,
+    bearer_token: data.bearerToken,
+    name: data.name,
+    removable: data.removable ? 1 : 0,
+    created_at: now,
+    updated_at: now
+  }
+}
+
+export function deleteAgentEndpoint(id: string): void {
+  const database = getDb()
+  database.run("DELETE FROM agent_endpoints WHERE id = ?", [id])
   saveToDisk()
 }

@@ -1,5 +1,15 @@
 import { create } from "zustand"
-import type { Thread, ModelConfig, Provider } from "@/types"
+import type { Thread, ModelConfig, Provider, AgentEndpoint } from "@/types"
+
+function buildMainAgent(): AgentEndpoint {
+  return {
+    id: "main",
+    url: "",
+    bearerToken: "",
+    name: "Main Agent",
+    removable: false
+  }
+}
 
 interface AppState {
   // Threads
@@ -22,6 +32,11 @@ interface AppState {
   // Kanban view state
   showKanbanView: boolean
   showSubagentsInKanban: boolean
+
+  // Agent endpoints
+  agentEndpoints: AgentEndpoint[]
+  activeAgentId: string | null
+  dicebearStyle: string
 
   // Thread actions
   loadThreads: () => Promise<void>
@@ -50,6 +65,13 @@ interface AppState {
   // Kanban actions
   setShowKanbanView: (show: boolean) => void
   setShowSubagentsInKanban: (show: boolean) => void
+
+  // Agent endpoint actions
+  upsertAgentEndpoint: (endpoint: AgentEndpoint) => Promise<void>
+  removeAgentEndpoint: (id: string) => Promise<void>
+  setActiveAgentId: (id: string | null) => void
+  loadAgentEndpoints: () => Promise<void>
+  orderedAgentEndpoints: () => AgentEndpoint[]
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -63,6 +85,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   sidebarCollapsed: false,
   showKanbanView: false,
   showSubagentsInKanban: true,
+  agentEndpoints: [buildMainAgent()],
+  activeAgentId: null,
+  dicebearStyle: "bottts-neutral",
 
   // Thread actions
   loadThreads: async () => {
@@ -193,5 +218,44 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setShowSubagentsInKanban: (show: boolean) => {
     set({ showSubagentsInKanban: show })
+  },
+
+  upsertAgentEndpoint: async (endpoint: AgentEndpoint) => {
+    await window.api.agentEndpoints.upsert(endpoint)
+    set((state) => {
+      const existing = state.agentEndpoints.findIndex((e) => e.id === endpoint.id)
+      if (existing >= 0) {
+        const updated = [...state.agentEndpoints]
+        updated[existing] = endpoint
+        return { agentEndpoints: updated }
+      }
+      return { agentEndpoints: [...state.agentEndpoints, endpoint] }
+    })
+  },
+
+  removeAgentEndpoint: async (id: string) => {
+    await window.api.agentEndpoints.delete(id)
+    set((state) => ({
+      agentEndpoints: state.agentEndpoints.filter((e) => e.id !== id || !e.removable),
+      activeAgentId: state.activeAgentId === id ? null : state.activeAgentId
+    }))
+  },
+
+  setActiveAgentId: (id: string | null) => {
+    set({ activeAgentId: id })
+  },
+
+  loadAgentEndpoints: async () => {
+    const persisted = await window.api.agentEndpoints.list()
+    const main = buildMainAgent()
+    const userAgents = persisted.filter((e) => e.removable)
+    set({ agentEndpoints: [main, ...userAgents] })
+  },
+
+  orderedAgentEndpoints: () => {
+    const { agentEndpoints } = get()
+    const fixed = agentEndpoints.filter((e) => !e.removable)
+    const removable = agentEndpoints.filter((e) => e.removable)
+    return [...fixed, ...removable]
   }
 }))

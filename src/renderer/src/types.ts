@@ -131,3 +131,18 @@ export interface GrepMatch {
   line: number
   text: string
 }
+
+export interface AgentEndpoint {
+  id: string
+  url: string
+  bearerToken: string
+  name: string
+  /** true = user-added agent, false = built-in main agent */
+  removable: boolean
+}
+
+export interface AgentEndpointState {
+  endpoints: AgentEndpoint[]
+  activeAgentId: string | null
+  dicebearStyle: string
+}
