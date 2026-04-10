@@ -17,13 +17,13 @@ const RIGHT_MAX = 450
 const RIGHT_DEFAULT = 320
 
 function App(): React.JSX.Element {
-  const { currentThreadId, loadThreads, createThread, showKanbanView } = useAppStore()
+  const { currentThreadId, loadThreads, showKanbanView } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
   const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
   const [zoomLevel, setZoomLevel] = useState(1)
 
-  // Track drag start widths
+  const didInitRef = useRef(false)
   const dragStartWidths = useRef<{ left: number; right: number } | null>(null)
 
   // Track zoom level changes and update CSS custom properties for safe areas
@@ -94,14 +94,12 @@ function App(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    if (didInitRef.current) return
+    didInitRef.current = true
+
     async function init(): Promise<void> {
       try {
         await loadThreads()
-        // Create a default thread if none exist
-        const threads = useAppStore.getState().threads
-        if (threads.length === 0) {
-          await createThread()
-        }
       } catch (error) {
         console.error("Failed to initialize:", error)
       } finally {
@@ -109,7 +107,7 @@ function App(): React.JSX.Element {
       }
     }
     init()
-  }, [loadThreads, createThread])
+  }, [loadThreads])
 
   if (isLoading) {
     return (

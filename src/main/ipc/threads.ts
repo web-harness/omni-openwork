@@ -13,9 +13,14 @@ import { generateTitle } from "../services/title-generator"
 import type { Thread, ThreadUpdateParams } from "../types"
 
 export function registerThreadHandlers(ipcMain: IpcMain): void {
-  // List all threads
   ipcMain.handle("threads:list", async () => {
-    const threads = getAllThreads()
+    let threads = getAllThreads()
+    if (threads.length === 0) {
+      const threadId = uuid()
+      const title = `Thread ${new Date().toLocaleDateString()}`
+      dbCreateThread(threadId, { title })
+      threads = getAllThreads()
+    }
     return threads.map((row) => ({
       thread_id: row.thread_id,
       created_at: new Date(row.created_at),
