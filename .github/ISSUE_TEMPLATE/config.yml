@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Documentation
-    url: https://github.com/langchain-ai/openwork#readme
+    url: https://github.com/web-harness/omni-openwork#readme
     about: Check the README for setup and usage information

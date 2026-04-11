@@ -1,4 +1,4 @@
-# openwork
+# omni openwork
 
 [![npm][npm-badge]][npm-url] [![License: MIT][license-badge]][license-url]
 
@@ -7,12 +7,9 @@
 [license-badge]: https://img.shields.io/badge/License-MIT-yellow.svg
 [license-url]: https://opensource.org/licenses/MIT
 
-A desktop interface for [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) — an opinionated harness for building deep agents with filesystem capabilities planning, and subagent delegation.
+A desktop interface for [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and [LangChain Agents](https://github.com/langchain-ai/agent-protocol) — an opinionated harness for building deep agents with filesystem capabilities, browser use, computer use, planning, and subagent delegation. **This fork allows multi agent collaboration among LangGraph Agents as well as the main Deep Agent loop.**
 
 ![openwork screenshot](docs/screenshot.png)
-
-> [!CAUTION]
-> openwork gives AI agents direct access to your filesystem and the ability to execute shell commands. Always review tool calls before approving them, and only run in workspaces you trust.
 
 ## Get Started
 
@@ -30,27 +27,20 @@ Requires Node.js 18+.
 ### From Source
 
 ```bash
-git clone https://github.com/langchain-ai/openwork.git
-cd openwork
+git clone git@github.com:web-harness/omni-openwork.git
+cd omni-openwork
 npm install
 npm run dev
 ```
 
 Or configure them in-app via the settings panel.
 
-## Supported Models
+## Supported Providers
 
-| Provider  | Models                                                                                                |
-| --------- | ----------------------------------------------------------------------------------------------------- |
-| Anthropic | Claude Opus 4.5, Claude Sonnet 4.5, Claude Haiku 4.5, Claude Opus 4.1, Claude Sonnet 4                |
-| OpenAI    | GPT-5.2, GPT-5.1, o3, o3 Mini, o4 Mini, o1, GPT-4.1, GPT-4o                                           |
-| Google    | Gemini 3 Pro Preview, Gemini 3 Flash Preview, Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.5 Flash Lite |
+- For the Deep Agent main loop, any OpenAI compatible endpoint works.
+- For the collaborative agents, LangGraph agent-protocol is supported.
 
-## Contributing
-
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-Report bugs via [GitHub Issues](https://github.com/langchain-ai/openwork/issues).
+You do not need extra LangGraph agents to work with this harness, but you do need an OpenAI compatible endpoint for the main agent loop.
 
 ## License
 

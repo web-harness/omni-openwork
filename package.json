@@ -15,13 +15,13 @@
   },
   "author": "LangChain",
   "license": "MIT",
-  "homepage": "https://github.com/langchain-ai/openwork",
+  "homepage": "https://github.com/web-harness/omni-openwork",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/langchain-ai/openwork.git"
+    "url": "git+https://github.com/web-harness/omni-openwork.git"
   },
   "bugs": {
-    "url": "https://github.com/langchain-ai/openwork/issues"
+    "url": "https://github.com/web-harness/omni-openwork/issues"
   },
   "keywords": [
     "ai",

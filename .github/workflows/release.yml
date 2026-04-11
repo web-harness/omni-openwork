@@ -91,7 +91,7 @@ jobs:
 
             ### Links
 
-            - [Documentation](https://github.com/langchain-ai/openwork#readme)
+            - [Documentation](https://github.com/web-harness/omni-openwork#readme)
             - [npm package](https://www.npmjs.com/package/openwork)
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
