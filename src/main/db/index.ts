@@ -78,7 +78,8 @@ export async function initializeDatabase(): Promise<SqlJsDatabase> {
       metadata TEXT,
       status TEXT DEFAULT 'idle',
       thread_values TEXT,
-      title TEXT
+      title TEXT,
+      agent_id TEXT
     )
   `)
 
@@ -156,6 +157,7 @@ export interface ThreadRow {
   status: string
   thread_values: string | null
   title: string | null
+  agent_id: string | null
 }
 
 export function getAllThreads(): ThreadRow[] {
@@ -186,14 +188,24 @@ export function getThread(threadId: string): ThreadRow | null {
   return thread
 }
 
-export function createThread(threadId: string, metadata?: Record<string, unknown>): ThreadRow {
+export function createThread(
+  threadId: string,
+  metadata?: Record<string, unknown>,
+  agentId?: string | null
+): ThreadRow {
   const database = getDb()
   const now = Date.now()
 
+  const title = (metadata?.title as string) ?? null
+  const cleanMetadata = metadata ? { ...metadata } : undefined
+  if (cleanMetadata) delete cleanMetadata.title
+  const metadataStr =
+    cleanMetadata && Object.keys(cleanMetadata).length > 0 ? JSON.stringify(cleanMetadata) : null
+
   database.run(
-    `INSERT INTO threads (thread_id, created_at, updated_at, metadata, status)
-     VALUES (?, ?, ?, ?, ?)`,
-    [threadId, now, now, metadata ? JSON.stringify(metadata) : null, "idle"]
+    `INSERT INTO threads (thread_id, created_at, updated_at, metadata, status, agent_id, title)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [threadId, now, now, metadataStr, "idle", agentId ?? null, title]
   )
 
   saveToDisk()
@@ -202,10 +214,11 @@ export function createThread(threadId: string, metadata?: Record<string, unknown
     thread_id: threadId,
     created_at: now,
     updated_at: now,
-    metadata: metadata ? JSON.stringify(metadata) : null,
+    metadata: metadataStr,
     status: "idle",
     thread_values: null,
-    title: null
+    title,
+    agent_id: agentId ?? null
   }
 }
 
@@ -239,6 +252,10 @@ export function updateThread(
   if (updates.title !== undefined) {
     setClauses.push("title = ?")
     values.push(updates.title)
+  }
+  if (updates.agent_id !== undefined) {
+    setClauses.push("agent_id = ?")
+    values.push(updates.agent_id)
   }
 
   values.push(threadId)

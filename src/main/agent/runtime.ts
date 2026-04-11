@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createDeepAgent } from "deepagents"
 import { getDefaultModel } from "../ipc/models"
-import { getApiKey, getThreadCheckpointPath } from "../storage"
-import { ChatAnthropic } from "@langchain/anthropic"
+import { getApiKey, getBaseUrl, getThreadCheckpointPath } from "../storage"
 import { ChatOpenAI } from "@langchain/openai"
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { SqlJsSaver } from "../checkpointer/sqljs-saver"
 import { LocalSandbox } from "./local-sandbox"
 
@@ -58,53 +56,22 @@ export async function closeCheckpointer(threadId: string): Promise<void> {
   }
 }
 
-// Get the appropriate model instance based on configuration
-function getModelInstance(
-  modelId?: string
-): ChatAnthropic | ChatOpenAI | ChatGoogleGenerativeAI | string {
+function getModelInstance(modelId?: string): ChatOpenAI | string {
   const model = modelId || getDefaultModel()
   console.log("[Runtime] Using model:", model)
 
-  // Determine provider from model ID
-  if (model.startsWith("claude")) {
-    const apiKey = getApiKey("anthropic")
-    console.log("[Runtime] Anthropic API key present:", !!apiKey)
-    if (!apiKey) {
-      throw new Error("Anthropic API key not configured")
-    }
-    return new ChatAnthropic({
-      model,
-      anthropicApiKey: apiKey
-    })
-  } else if (
-    model.startsWith("gpt") ||
-    model.startsWith("o1") ||
-    model.startsWith("o3") ||
-    model.startsWith("o4")
-  ) {
-    const apiKey = getApiKey("openai")
-    console.log("[Runtime] OpenAI API key present:", !!apiKey)
-    if (!apiKey) {
-      throw new Error("OpenAI API key not configured")
-    }
-    return new ChatOpenAI({
-      model,
-      openAIApiKey: apiKey
-    })
-  } else if (model.startsWith("gemini")) {
-    const apiKey = getApiKey("google")
-    console.log("[Runtime] Google API key present:", !!apiKey)
-    if (!apiKey) {
-      throw new Error("Google API key not configured")
-    }
-    return new ChatGoogleGenerativeAI({
-      model,
-      apiKey: apiKey
-    })
+  const apiKey = getApiKey("openai")
+  console.log("[Runtime] OpenAI API key present:", !!apiKey)
+  if (!apiKey) {
+    throw new Error("OpenAI API key not configured")
   }
 
-  // Default to model string (let deepagents handle it)
-  return model
+  const baseUrl = getBaseUrl("openai")
+  return new ChatOpenAI({
+    model,
+    openAIApiKey: apiKey,
+    ...(baseUrl ? { configuration: { baseURL: baseUrl } } : {})
+  })
 }
 
 import { RemoteGraph } from "@langchain/langgraph/remote"
@@ -186,7 +153,7 @@ The workspace root is: ${workspacePath}`
     filesystemSystemPrompt,
     // Require human approval for all shell commands
     interruptOn: { execute: true },
-    ...(subagents.length > 0 ? { subagents } : {})
+    subagents
   } as Parameters<typeof createDeepAgent>[0])
 
   console.log("[Runtime] Deep agent created with LocalSandbox at:", workspacePath)

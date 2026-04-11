@@ -17,8 +17,7 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
     let threads = getAllThreads()
     if (threads.length === 0) {
       const threadId = uuid()
-      const title = `Thread ${new Date().toLocaleDateString()}`
-      dbCreateThread(threadId, { title })
+      dbCreateThread(threadId)
       threads = getAllThreads()
     }
     return threads.map((row) => ({
@@ -28,7 +27,8 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       status: row.status as Thread["status"],
       thread_values: row.thread_values ? JSON.parse(row.thread_values) : undefined,
-      title: row.title
+      title: row.title,
+      agent_id: row.agent_id ?? null
     }))
   })
 
@@ -43,16 +43,25 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       status: row.status as Thread["status"],
       thread_values: row.thread_values ? JSON.parse(row.thread_values) : undefined,
-      title: row.title
+      title: row.title,
+      agent_id: row.agent_id ?? null
     }
   })
 
   // Create a new thread
   ipcMain.handle("threads:create", async (_event, metadata?: Record<string, unknown>) => {
     const threadId = uuid()
-    const title = (metadata?.title as string) || `Thread ${new Date().toLocaleDateString()}`
+    const title = (metadata?.title as string) || null
+    const agentId = (metadata?.agent_id as string | null | undefined) ?? null
 
-    const thread = dbCreateThread(threadId, { ...metadata, title })
+    const cleanMetadata = { ...metadata }
+    delete cleanMetadata.agent_id
+
+    const thread = dbCreateThread(
+      threadId,
+      { ...cleanMetadata, ...(title ? { title } : {}) },
+      agentId
+    )
 
     return {
       thread_id: thread.thread_id,
@@ -61,7 +70,8 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
       metadata: thread.metadata ? JSON.parse(thread.metadata) : undefined,
       status: thread.status as Thread["status"],
       thread_values: thread.thread_values ? JSON.parse(thread.thread_values) : undefined,
-      title
+      title: thread.title ?? null,
+      agent_id: thread.agent_id ?? null
     } as Thread
   })
 
@@ -74,6 +84,7 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
     if (updates.metadata !== undefined) updateData.metadata = JSON.stringify(updates.metadata)
     if (updates.thread_values !== undefined)
       updateData.thread_values = JSON.stringify(updates.thread_values)
+    if (updates.agent_id !== undefined) updateData.agent_id = updates.agent_id ?? null
 
     const row = dbUpdateThread(threadId, updateData)
     if (!row) throw new Error("Thread not found")
@@ -85,7 +96,8 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       status: row.status as Thread["status"],
       thread_values: row.thread_values ? JSON.parse(row.thread_values) : undefined,
-      title: row.title
+      title: row.title,
+      agent_id: row.agent_id ?? null
     }
   })
 

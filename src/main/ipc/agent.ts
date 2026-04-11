@@ -314,4 +314,95 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       activeRuns.delete(threadId)
     }
   })
+
+  ipcMain.on(
+    "agent:stream-remote",
+    async (
+      event,
+      {
+        threadId,
+        message,
+        endpointUrl,
+        graphId,
+        apiKey
+      }: {
+        threadId: string
+        message: string
+        endpointUrl: string
+        graphId: string
+        apiKey?: string
+      }
+    ) => {
+      const { RemoteGraph } = await import("@langchain/langgraph/remote")
+      const { HumanMessage: HMsg } = await import("@langchain/core/messages")
+
+      const channel = `agent:stream:${threadId}`
+      const window = BrowserWindow.fromWebContents(event.sender)
+
+      if (!window) return
+
+      const existingController = activeRuns.get(threadId)
+      if (existingController) {
+        existingController.abort()
+        activeRuns.delete(threadId)
+      }
+
+      const abortController = new AbortController()
+      activeRuns.set(threadId, abortController)
+
+      const onWindowClosed = (): void => {
+        abortController.abort()
+      }
+      window.once("closed", onWindowClosed)
+
+      try {
+        const remoteGraph = new RemoteGraph({
+          graphId: graphId || "agent",
+          url: endpointUrl,
+          ...(apiKey ? { apiKey } : {})
+        })
+
+        const stream = await remoteGraph.stream(
+          { messages: [new HMsg(message)] },
+          {
+            configurable: { thread_id: threadId },
+            signal: abortController.signal,
+            streamMode: ["messages", "values"]
+          }
+        )
+
+        for await (const chunk of stream) {
+          if (abortController.signal.aborted) break
+
+          const [mode, data] = chunk as [string, unknown]
+          window.webContents.send(channel, {
+            type: "stream",
+            mode,
+            data: JSON.parse(JSON.stringify(data))
+          })
+        }
+
+        if (!abortController.signal.aborted) {
+          window.webContents.send(channel, { type: "done" })
+        }
+      } catch (error) {
+        const isAbortError =
+          error instanceof Error &&
+          (error.name === "AbortError" ||
+            error.message.includes("aborted") ||
+            error.message.includes("Controller is already closed"))
+
+        if (!isAbortError) {
+          console.error("[Agent] Remote stream error:", error)
+          window.webContents.send(channel, {
+            type: "error",
+            error: error instanceof Error ? error.message : "Unknown error"
+          })
+        }
+      } finally {
+        window.removeListener("closed", onWindowClosed)
+        activeRuns.delete(threadId)
+      }
+    }
+  )
 }

@@ -129,6 +129,7 @@ export function ThreadSidebar(): React.JSX.Element {
   const {
     threads,
     currentThreadId,
+    activeAgentId,
     createThread,
     selectThread,
     deleteThread,
@@ -138,6 +139,8 @@ export function ThreadSidebar(): React.JSX.Element {
 
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
+
+  const visibleThreads = threads.filter((t) => (t.agent_id ?? null) === activeAgentId)
 
   const startEditing = (threadId: string, currentTitle: string): void => {
     setEditingThreadId(threadId)
@@ -158,7 +161,7 @@ export function ThreadSidebar(): React.JSX.Element {
   }
 
   const handleNewThread = async (): Promise<void> => {
-    await createThread({ title: `Thread ${new Date().toLocaleDateString()}` })
+    await createThread()
   }
 
   return (
@@ -179,7 +182,7 @@ export function ThreadSidebar(): React.JSX.Element {
       {/* Thread List */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-2 space-y-1 overflow-hidden">
-          {threads.map((thread) => (
+          {visibleThreads.map((thread) => (
             <ThreadListItem
               key={thread.thread_id}
               thread={thread}
@@ -195,7 +198,7 @@ export function ThreadSidebar(): React.JSX.Element {
             />
           ))}
 
-          {threads.length === 0 && (
+          {visibleThreads.length === 0 && (
             <div className="px-3 py-8 text-center text-sm text-muted-foreground">
               No threads yet
             </div>

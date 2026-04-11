@@ -9,6 +9,7 @@ export interface Thread {
   status: ThreadStatus
   thread_values?: Record<string, unknown>
   title?: string
+  agent_id?: string | null
 }
 
 export type RunStatus = "pending" | "running" | "error" | "success" | "interrupted"
@@ -24,12 +25,13 @@ export interface Run {
 }
 
 // Provider configuration
-export type ProviderId = "anthropic" | "openai" | "google" | "ollama"
+export type ProviderId = "openai"
 
 export interface Provider {
   id: ProviderId
   name: string
   hasApiKey: boolean
+  baseUrl?: string | null
 }
 
 export interface ModelConfig {

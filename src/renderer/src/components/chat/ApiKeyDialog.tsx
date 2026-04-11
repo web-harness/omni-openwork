@@ -31,33 +31,48 @@ export function ApiKeyDialog({
 }: ApiKeyDialogProps): React.JSX.Element | null {
   const [apiKey, setApiKey] = useState("")
   const [showKey, setShowKey] = useState(false)
+  const [baseUrl, setBaseUrl] = useState("")
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [hasExistingKey, setHasExistingKey] = useState(false)
 
-  const { setApiKey: saveApiKey, deleteApiKey } = useAppStore()
+  const {
+    setApiKey: saveApiKey,
+    deleteApiKey,
+    setBaseUrl: saveBaseUrl,
+    deleteBaseUrl
+  } = useAppStore()
 
-  // Check if there's an existing key when dialog opens
   useEffect(() => {
     if (open && provider) {
       setHasExistingKey(provider.hasApiKey)
       setApiKey("")
       setShowKey(false)
+      setBaseUrl(provider.id === "openai" ? (provider.baseUrl ?? "") : "")
     }
   }, [open, provider])
 
   if (!provider) return null
 
   const info = PROVIDER_INFO[provider.id] || { placeholder: "...", envVar: "" }
+  const showBaseUrlField = provider.id === "openai"
 
   async function handleSave(): Promise<void> {
     if (!apiKey.trim()) return
+    if (showBaseUrlField && !baseUrl.trim()) return
     if (!provider) return
 
     console.log("[ApiKeyDialog] Saving API key for provider:", provider.id)
     setSaving(true)
     try {
       await saveApiKey(provider.id, apiKey.trim())
+      if (showBaseUrlField) {
+        if (baseUrl.trim()) {
+          await saveBaseUrl(provider.id, baseUrl.trim())
+        } else {
+          await deleteBaseUrl(provider.id)
+        }
+      }
       console.log("[ApiKeyDialog] API key saved successfully")
       onOpenChange(false)
     } catch (e) {
@@ -72,6 +87,9 @@ export function ApiKeyDialog({
     setDeleting(true)
     try {
       await deleteApiKey(provider.id)
+      if (showBaseUrlField) {
+        await deleteBaseUrl(provider.id)
+      }
       onOpenChange(false)
     } catch (e) {
       console.error("Failed to delete API key:", e)
@@ -117,6 +135,21 @@ export function ApiKeyDialog({
               Environment variable: <code className="text-foreground">{info.envVar}</code>
             </p>
           </div>
+
+          {showBaseUrlField && (
+            <div className="space-y-2">
+              <Input
+                type="text"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="http://localhost:11434/v1"
+              />
+              <p className="text-xs text-muted-foreground">
+                Base URL for an OpenAI-compatible endpoint.{" "}
+                <code className="text-foreground">OPENAI_BASE_URL</code>
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between">
@@ -142,7 +175,11 @@ export function ApiKeyDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={handleSave} disabled={!apiKey.trim() || saving}>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={!apiKey.trim() || (showBaseUrlField && !baseUrl.trim()) || saving}
+            >
               {saving ? <Loader2 className="size-4 animate-spin" /> : "Save"}
             </Button>
           </div>

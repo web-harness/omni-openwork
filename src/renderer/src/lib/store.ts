@@ -51,6 +51,8 @@ interface AppState {
   loadProviders: () => Promise<void>
   setApiKey: (providerId: string, apiKey: string) => Promise<void>
   deleteApiKey: (providerId: string) => Promise<void>
+  setBaseUrl: (providerId: string, baseUrl: string) => Promise<void>
+  deleteBaseUrl: (providerId: string) => Promise<void>
 
   // Panel actions
   setRightPanelTab: (tab: "todos" | "files" | "subagents") => void
@@ -69,7 +71,7 @@ interface AppState {
   // Agent endpoint actions
   upsertAgentEndpoint: (endpoint: AgentEndpoint) => Promise<void>
   removeAgentEndpoint: (id: string) => Promise<void>
-  setActiveAgentId: (id: string | null) => void
+  setActiveAgentId: (id: string | null) => Promise<void>
   loadAgentEndpoints: () => Promise<void>
   orderedAgentEndpoints: () => AgentEndpoint[]
 }
@@ -94,14 +96,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     const threads = await window.api.threads.list()
     set({ threads })
 
-    // Select first thread if none selected
     if (!get().currentThreadId && threads.length > 0) {
-      await get().selectThread(threads[0].thread_id)
+      const activeAgentId = get().activeAgentId
+      const agentThreads = threads.filter((t) => (t.agent_id ?? null) === activeAgentId)
+      const firstThread = agentThreads[0] ?? threads[0]
+      await get().selectThread(firstThread.thread_id)
     }
   },
 
   createThread: async (metadata?: Record<string, unknown>) => {
-    const thread = await window.api.threads.create(metadata)
+    const activeAgentId = get().activeAgentId
+    const thread = await window.api.threads.create({
+      ...metadata,
+      agent_id: activeAgentId ?? null
+    })
     set((state) => ({
       threads: [thread, ...state.threads],
       currentThreadId: thread.thread_id,
@@ -188,6 +196,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().loadModels()
   },
 
+  setBaseUrl: async (providerId: string, baseUrl: string) => {
+    await window.api.models.setBaseUrl(providerId, baseUrl)
+    await get().loadProviders()
+  },
+
+  deleteBaseUrl: async (providerId: string) => {
+    await window.api.models.deleteBaseUrl(providerId)
+    await get().loadProviders()
+  },
+
   // Panel actions
   setRightPanelTab: (tab: "todos" | "files" | "subagents") => {
     set({ rightPanelTab: tab })
@@ -241,8 +259,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }))
   },
 
-  setActiveAgentId: (id: string | null) => {
-    set({ activeAgentId: id })
+  setActiveAgentId: async (id: string | null) => {
+    set({ activeAgentId: id, showKanbanView: false })
+    const threads = get().threads
+    const agentThreads = threads.filter((t) => (t.agent_id ?? null) === id)
+    if (agentThreads.length > 0) {
+      set({ currentThreadId: agentThreads[0].thread_id })
+    } else {
+      await get().createThread()
+    }
   },
 
   loadAgentEndpoints: async () => {

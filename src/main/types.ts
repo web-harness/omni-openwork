@@ -74,6 +74,7 @@ export interface Thread {
   status: ThreadStatus
   thread_values?: Record<string, unknown>
   title?: string
+  agent_id?: string | null
 }
 
 // Run types
@@ -90,12 +91,13 @@ export interface Run {
 }
 
 // Provider configuration
-export type ProviderId = "anthropic" | "openai" | "google" | "ollama"
+export type ProviderId = "openai"
 
 export interface Provider {
   id: ProviderId
   name: string
   hasApiKey: boolean
+  baseUrl?: string | null
 }
 
 // Model configuration

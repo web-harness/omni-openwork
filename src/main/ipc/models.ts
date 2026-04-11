@@ -11,7 +11,16 @@ import type {
   WorkspaceFileParams
 } from "../types"
 import { startWatching, stopWatching } from "../services/workspace-watcher"
-import { getOpenworkDir, getApiKey, setApiKey, deleteApiKey, hasApiKey } from "../storage"
+import {
+  getOpenworkDir,
+  getApiKey,
+  setApiKey,
+  deleteApiKey,
+  hasApiKey,
+  getBaseUrl,
+  setBaseUrl,
+  deleteBaseUrl
+} from "../storage"
 
 // Store for non-sensitive settings only (no encryption needed)
 const store = new Store({
@@ -20,57 +29,10 @@ const store = new Store({
 })
 
 // Provider configurations
-const PROVIDERS: Omit<Provider, "hasApiKey">[] = [
-  { id: "anthropic", name: "Anthropic" },
-  { id: "openai", name: "OpenAI" },
-  { id: "google", name: "Google" }
-]
+const PROVIDERS: Omit<Provider, "hasApiKey">[] = [{ id: "openai", name: "OpenAI" }]
 
-// Available models configuration (updated Jan 2026)
+// Available models configuration
 const AVAILABLE_MODELS: ModelConfig[] = [
-  // Anthropic Claude 4.5 series (latest as of Jan 2026)
-  {
-    id: "claude-opus-4-5-20251101",
-    name: "Claude Opus 4.5",
-    provider: "anthropic",
-    model: "claude-opus-4-5-20251101",
-    description: "Premium model with maximum intelligence",
-    available: true
-  },
-  {
-    id: "claude-sonnet-4-5-20250929",
-    name: "Claude Sonnet 4.5",
-    provider: "anthropic",
-    model: "claude-sonnet-4-5-20250929",
-    description: "Best balance of intelligence, speed, and cost for agents",
-    available: true
-  },
-  {
-    id: "claude-haiku-4-5-20251001",
-    name: "Claude Haiku 4.5",
-    provider: "anthropic",
-    model: "claude-haiku-4-5-20251001",
-    description: "Fastest model with near-frontier intelligence",
-    available: true
-  },
-  // Anthropic Claude legacy models
-  {
-    id: "claude-opus-4-1-20250805",
-    name: "Claude Opus 4.1",
-    provider: "anthropic",
-    model: "claude-opus-4-1-20250805",
-    description: "Previous generation premium model with extended thinking",
-    available: true
-  },
-  {
-    id: "claude-sonnet-4-20250514",
-    name: "Claude Sonnet 4",
-    provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
-    description: "Fast and capable previous generation model",
-    available: true
-  },
-  // OpenAI GPT-5 series (latest as of Jan 2026)
   {
     id: "gpt-5.2",
     name: "GPT-5.2",
@@ -87,7 +49,6 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     description: "Advanced reasoning and robust performance",
     available: true
   },
-  // OpenAI o-series reasoning models
   {
     id: "o3",
     name: "o3",
@@ -120,7 +81,6 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     description: "Premium reasoning for research, coding, math and science",
     available: true
   },
-  // OpenAI GPT-4 series
   {
     id: "gpt-4.1",
     name: "GPT-4.1",
@@ -160,47 +120,6 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     model: "gpt-4o-mini",
     description: "Cost-efficient variant with faster response times",
     available: true
-  },
-  // Google Gemini models
-  {
-    id: "gemini-3-pro-preview",
-    name: "Gemini 3 Pro Preview",
-    provider: "google",
-    model: "gemini-3-pro-preview",
-    description: "State-of-the-art reasoning and multimodal understanding",
-    available: true
-  },
-  {
-    id: "gemini-3-flash-preview",
-    name: "Gemini 3 Flash Preview",
-    provider: "google",
-    model: "gemini-3-flash-preview",
-    description: "Fast frontier-class model with low latency and cost",
-    available: true
-  },
-  {
-    id: "gemini-2.5-pro",
-    name: "Gemini 2.5 Pro",
-    provider: "google",
-    model: "gemini-2.5-pro",
-    description: "High-capability model for complex reasoning and coding",
-    available: true
-  },
-  {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    provider: "google",
-    model: "gemini-2.5-flash",
-    description: "Lightning-fast with balance of intelligence and latency",
-    available: true
-  },
-  {
-    id: "gemini-2.5-flash-lite",
-    name: "Gemini 2.5 Flash Lite",
-    provider: "google",
-    model: "gemini-2.5-flash-lite",
-    description: "Fast, low-cost, high-performance model",
-    available: true
   }
 ]
 
@@ -216,7 +135,7 @@ export function registerModelHandlers(ipcMain: IpcMain): void {
 
   // Get default model
   ipcMain.handle("models:getDefault", async () => {
-    return store.get("defaultModel", "claude-sonnet-4-5-20250929") as string
+    return store.get("defaultModel", "gpt-4o") as string
   })
 
   // Set default model
@@ -243,8 +162,24 @@ export function registerModelHandlers(ipcMain: IpcMain): void {
   ipcMain.handle("models:listProviders", async () => {
     return PROVIDERS.map((provider) => ({
       ...provider,
-      hasApiKey: hasApiKey(provider.id)
+      hasApiKey: hasApiKey(provider.id),
+      baseUrl: getBaseUrl(provider.id) ?? null
     }))
+  })
+
+  ipcMain.handle(
+    "models:setBaseUrl",
+    async (_event, { provider, baseUrl }: { provider: string; baseUrl: string }) => {
+      setBaseUrl(provider, baseUrl)
+    }
+  )
+
+  ipcMain.handle("models:getBaseUrl", async (_event, provider: string) => {
+    return getBaseUrl(provider) ?? null
+  })
+
+  ipcMain.handle("models:deleteBaseUrl", async (_event, provider: string) => {
+    deleteBaseUrl(provider)
   })
 
   // Sync version info
@@ -519,5 +454,5 @@ export function registerModelHandlers(ipcMain: IpcMain): void {
 export { getApiKey } from "../storage"
 
 export function getDefaultModel(): string {
-  return store.get("defaultModel", "claude-sonnet-4-5-20250929") as string
+  return store.get("defaultModel", "gpt-4o") as string
 }

@@ -1,17 +1,15 @@
 import { homedir } from "os"
 import { join } from "path"
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "fs"
-import type { ProviderId } from "./types"
-
 const OPENWORK_DIR = join(homedir(), ".openwork")
 const ENV_FILE = join(OPENWORK_DIR, ".env")
 
-// Environment variable names for each provider
-const ENV_VAR_NAMES: Record<ProviderId, string> = {
-  anthropic: "ANTHROPIC_API_KEY",
-  openai: "OPENAI_API_KEY",
-  google: "GOOGLE_API_KEY",
-  ollama: "" // Ollama doesn't require an API key
+const ENV_VAR_NAMES: Record<string, string> = {
+  openai: "OPENAI_API_KEY"
+}
+
+const ENV_BASE_URL_NAMES: Record<string, string> = {
+  openai: "OPENAI_BASE_URL"
 }
 
 export function getOpenworkDir(): string {
@@ -121,4 +119,34 @@ export function deleteApiKey(provider: string): void {
 
 export function hasApiKey(provider: string): boolean {
   return !!getApiKey(provider)
+}
+
+export function getBaseUrl(provider: string): string | undefined {
+  const envVarName = ENV_BASE_URL_NAMES[provider]
+  if (!envVarName) return undefined
+  const env = parseEnvFile()
+  if (env[envVarName]) return env[envVarName]
+  return process.env[envVarName]
+}
+
+export function setBaseUrl(provider: string, baseUrl: string): void {
+  const envVarName = ENV_BASE_URL_NAMES[provider]
+  if (!envVarName) return
+  const env = parseEnvFile()
+  env[envVarName] = baseUrl
+  writeEnvFile(env)
+  process.env[envVarName] = baseUrl
+}
+
+export function deleteBaseUrl(provider: string): void {
+  const envVarName = ENV_BASE_URL_NAMES[provider]
+  if (!envVarName) return
+  const env = parseEnvFile()
+  delete env[envVarName]
+  writeEnvFile(env)
+  delete process.env[envVarName]
+}
+
+export function hasBaseUrl(provider: string): boolean {
+  return !!getBaseUrl(provider)
 }

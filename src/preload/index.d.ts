@@ -43,6 +43,14 @@ interface CustomAPI {
       onEvent?: (event: StreamEvent) => void
     ) => () => void
     cancel: (threadId: string) => Promise<void>
+    streamRemote: (
+      threadId: string,
+      message: string,
+      endpointUrl: string,
+      graphId: string,
+      apiKey: string | undefined,
+      onEvent: (event: StreamEvent) => void
+    ) => () => void
   }
   threads: {
     list: () => Promise<Thread[]>
@@ -57,10 +65,13 @@ interface CustomAPI {
     list: () => Promise<ModelConfig[]>
     listProviders: () => Promise<Provider[]>
     getDefault: () => Promise<string>
-    deleteApiKey: (provider: string) => Promise<void>
     setDefault: (modelId: string) => Promise<void>
     setApiKey: (provider: string, apiKey: string) => Promise<void>
     getApiKey: (provider: string) => Promise<string | null>
+    deleteApiKey: (provider: string) => Promise<void>
+    setBaseUrl: (provider: string, baseUrl: string) => Promise<void>
+    getBaseUrl: (provider: string) => Promise<string | null>
+    deleteBaseUrl: (provider: string) => Promise<void>
   }
   workspace: {
     get: (threadId?: string) => Promise<string | null>

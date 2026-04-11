@@ -123,7 +123,23 @@ export class ElectronIPCTransport implements UseStreamTransport {
       return this.createErrorGenerator("MISSING_MESSAGE", "Message content is required")
     }
 
-    // Create an async generator that bridges IPC events
+    const storeState = useAppStore.getState()
+    const activeAgentId = storeState.activeAgentId
+
+    if (activeAgentId && !hasResumeCommand) {
+      const activeEndpoint = storeState.agentEndpoints.find((ep) => ep.id === activeAgentId)
+      if (activeEndpoint?.url) {
+        return this.createRemoteStreamGenerator(
+          threadId,
+          messageContent,
+          activeEndpoint.url,
+          activeEndpoint.graphId || "agent",
+          activeEndpoint.bearerToken || undefined,
+          payload.signal
+        )
+      }
+    }
+
     return this.createStreamGenerator(
       threadId,
       messageContent,
@@ -137,6 +153,83 @@ export class ElectronIPCTransport implements UseStreamTransport {
     yield {
       event: "error",
       data: { error: code, message }
+    }
+  }
+
+  private async *createRemoteStreamGenerator(
+    threadId: string,
+    message: string,
+    endpointUrl: string,
+    graphId: string,
+    apiKey: string | undefined,
+    signal: AbortSignal
+  ): AsyncGenerator<StreamEvent> {
+    const eventQueue: StreamEvent[] = []
+    let resolveNext: ((value: StreamEvent | null) => void) | null = null
+    let isDone = false
+
+    const runId = crypto.randomUUID()
+
+    yield {
+      event: "metadata",
+      data: { run_id: runId, thread_id: threadId }
+    }
+
+    const cleanup = window.api.agent.streamRemote(
+      threadId,
+      message,
+      endpointUrl,
+      graphId,
+      apiKey,
+      (ipcEvent) => {
+        const sdkEvents = this.convertToSDKEvents(ipcEvent as IPCEvent, threadId)
+
+        for (const sdkEvent of sdkEvents) {
+          if (sdkEvent.event === "done" || sdkEvent.event === "error") {
+            isDone = true
+          }
+
+          if (resolveNext) {
+            const resolve = resolveNext
+            resolveNext = null
+            resolve(sdkEvent)
+          } else {
+            eventQueue.push(sdkEvent)
+          }
+        }
+      }
+    )
+
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        cleanup()
+        isDone = true
+        if (resolveNext) {
+          const resolve = resolveNext
+          resolveNext = null
+          resolve(null)
+        }
+      })
+    }
+
+    while (!isDone || eventQueue.length > 0) {
+      if (eventQueue.length > 0) {
+        const event = eventQueue.shift()!
+        if (event.event === "done") break
+        yield event
+        if (event.event === "error") break
+        continue
+      }
+
+      const event = await new Promise<StreamEvent | null>((resolve) => {
+        resolveNext = resolve
+      })
+
+      if (event === null || event.event === "done") break
+
+      yield event
+
+      if (event.event === "error") break
     }
   }
 

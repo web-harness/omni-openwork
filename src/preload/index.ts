@@ -110,6 +110,30 @@ const api = {
     },
     cancel: (threadId: string): Promise<void> => {
       return ipcRenderer.invoke("agent:cancel", { threadId })
+    },
+    streamRemote: (
+      threadId: string,
+      message: string,
+      endpointUrl: string,
+      graphId: string,
+      apiKey: string | undefined,
+      onEvent: (event: StreamEvent) => void
+    ): (() => void) => {
+      const channel = `agent:stream:${threadId}`
+
+      const handler = (_: unknown, data: StreamEvent): void => {
+        onEvent(data)
+        if (data.type === "done" || data.type === "error") {
+          ipcRenderer.removeListener(channel, handler)
+        }
+      }
+
+      ipcRenderer.on(channel, handler)
+      ipcRenderer.send("agent:stream-remote", { threadId, message, endpointUrl, graphId, apiKey })
+
+      return () => {
+        ipcRenderer.removeListener(channel, handler)
+      }
     }
   },
   threads: {
@@ -156,6 +180,15 @@ const api = {
     },
     deleteApiKey: (provider: string): Promise<void> => {
       return ipcRenderer.invoke("models:deleteApiKey", provider)
+    },
+    setBaseUrl: (provider: string, baseUrl: string): Promise<void> => {
+      return ipcRenderer.invoke("models:setBaseUrl", { provider, baseUrl })
+    },
+    getBaseUrl: (provider: string): Promise<string | null> => {
+      return ipcRenderer.invoke("models:getBaseUrl", provider)
+    },
+    deleteBaseUrl: (provider: string): Promise<void> => {
+      return ipcRenderer.invoke("models:deleteBaseUrl", provider)
     }
   },
   workspace: {
