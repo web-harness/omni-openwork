@@ -15,8 +15,8 @@ Thank you for your interest in contributing to openwork! This document provides 
 1. Fork and clone the repository:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/openwork.git
-   cd openwork
+   git clone https://github.com/YOUR_USERNAME/omni-openwork.git
+   cd omni-openwork
    ```
 
 2. Install dependencies:
@@ -39,7 +39,7 @@ openwork/
 │   │   ├── index.ts        # App entry point
 │   │   ├── agent/          # DeepAgents runtime
 │   │   ├── checkpointer/   # LangGraph checkpointing
-│   │   ├── db/             # SQLite database
+│   │   ├── db/             # SQLite database (sql.js)
 │   │   ├── ipc/            # IPC handlers
 │   │   └── services/       # Business logic services
 │   ├── preload/            # Electron preload/context bridge
@@ -49,17 +49,18 @@ openwork/
 │           ├── App.tsx
 │           ├── index.css   # Tailwind + design system
 │           ├── components/
-│           │   ├── ui/     # Base shadcn components
-│           │   ├── chat/   # Chat interface
-│           │   ├── sidebar/# Thread sidebar
-│           │   ├── panels/ # Right panel tabs
-│           │   ├── hitl/   # Human-in-the-loop dialogs
-│           │   ├── settings/
-│           │   └── tabs/
-│           └── lib/        # Utilities and store
+│           │   ├── ui/     # shadcn primitives
+│           │   ├── chat/   # Chat interface, streaming
+│           │   ├── sidebar/# Thread sidebar, agent rail
+│           │   ├── panels/ # Todo, filesystem, subagent panels
+│           │   ├── tabs/   # File viewers (PDF, DOCX, code, etc.)
+│           │   └── kanban/ # Task board view
+│           └── lib/        # Zustand store, utilities
+├── web/                    # Browser build
+│   ├── shims/              # Polyfills (electron, fs, child_process)
+│   └── main.ts             # Web entry with ZenFS init
 ├── bin/                    # CLI launcher
-├── public/                 # Static assets
-└── resources/              # Electron resources
+└── docs/                   # Documentation
 ```
 
 ## Code Style
@@ -79,7 +80,7 @@ openwork/
 ### CSS
 
 - Use Tailwind CSS with the tactical design system
-- Follow the color system defined in `src/index.css`
+- Follow the color system defined in `src/renderer/src/index.css`
 - Use `cn()` utility for conditional classes
 
 ## Design System
@@ -156,13 +157,6 @@ We use labels to organize issues:
 | `documentation`    | Documentation improvements    |
 | `question`         | Further information requested |
 | `wontfix`          | This will not be worked on    |
-
-## Questions?
-
-Open an issue or start a discussion on GitHub.
-changes
-
-- `chore:` Build/tooling changes
 
 ## Questions?
 
