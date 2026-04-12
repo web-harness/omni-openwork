@@ -1,5 +1,15 @@
 import { useState } from "react"
-import { Plus, MessageSquare, Trash2, Pencil, Loader2, LayoutGrid, AlertCircle } from "lucide-react"
+import {
+  Plus,
+  MessageSquare,
+  Trash2,
+  Pencil,
+  Loader2,
+  LayoutGrid,
+  AlertCircle,
+  Sun,
+  Moon
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/lib/store"
@@ -13,6 +23,7 @@ import {
   ContextMenuTrigger
 } from "@/components/ui/context-menu"
 import type { Thread } from "@/types"
+import { OmniText } from "@/components/ui/OmniText"
 
 // Thread status indicator that shows loading, interrupted, or default state
 function ThreadStatusIcon({ threadId }: { threadId: string }): React.JSX.Element {
@@ -88,9 +99,12 @@ function ThreadListItem({
               />
             ) : (
               <>
-                <div className="text-sm truncate block">
-                  {thread.title || truncate(thread.thread_id, 20)}
-                </div>
+                <OmniText
+                  className="text-sm"
+                  text={thread.title || truncate(thread.thread_id, 20)}
+                  strategy="truncate"
+                  maxLines={1}
+                />
                 <div className="text-[10px] text-muted-foreground truncate">
                   {formatRelativeTime(thread.updated_at)}
                 </div>
@@ -134,7 +148,9 @@ export function ThreadSidebar(): React.JSX.Element {
     selectThread,
     deleteThread,
     updateThread,
-    setShowKanbanView
+    setShowKanbanView,
+    theme,
+    setTheme
   } = useAppStore()
 
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null)
@@ -206,16 +222,23 @@ export function ThreadSidebar(): React.JSX.Element {
         </div>
       </ScrollArea>
 
-      {/* Overview Toggle */}
-      <div className="p-2 border-t border-border">
+      {/* Footer */}
+      <div className="p-2 border-t border-border flex items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start gap-2"
+          className="flex-1 justify-start gap-2"
           onClick={() => setShowKanbanView(true)}
         >
           <LayoutGrid className="size-4" />
           Overview
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
       </div>
     </aside>

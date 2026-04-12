@@ -1,3 +1,5 @@
+import { directoryOpen } from "browser-fs-access"
+
 export async function selectWorkspaceFolder(
   currentThreadId: string | null,
   setWorkspacePath: (path: string | null) => void,
@@ -8,7 +10,20 @@ export async function selectWorkspaceFolder(
   if (!currentThreadId) return
   setLoading(true)
   try {
-    const path = await window.api.workspace.select(currentThreadId)
+    let path: string | null = null
+
+    if (window.api?.workspace?.select) {
+      // Electron path (also handles web via shim internally)
+      path = await window.api.workspace.select(currentThreadId)
+    } else {
+      // Direct browser-fs-access fallback
+      const files = await directoryOpen({ recursive: true })
+      const list = Array.isArray(files) ? files : [files]
+      if (list.length > 0) {
+        path = "/" + list[0].webkitRelativePath.split("/")[0]
+      }
+    }
+
     if (path) {
       setWorkspacePath(path)
       const result = await window.api.workspace.loadFromDisk(currentThreadId)

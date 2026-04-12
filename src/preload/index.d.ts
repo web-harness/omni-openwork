@@ -112,6 +112,10 @@ interface CustomAPI {
       callback: (data: { threadId: string; workspacePath: string }) => void
     ) => () => void
   }
+  settings: {
+    get: (key: string) => Promise<string | null>
+    set: (key: string, value: string) => Promise<void>
+  }
   agentEndpoints: {
     list: () => Promise<AgentEndpoint[]>
     upsert: (endpoint: AgentEndpoint) => Promise<AgentEndpoint>

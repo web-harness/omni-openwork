@@ -254,6 +254,14 @@ const api = {
       }
     }
   },
+  settings: {
+    get: (key: string): Promise<string | null> => {
+      return ipcRenderer.invoke("settings:get", key)
+    },
+    set: (key: string, value: string): Promise<void> => {
+      return ipcRenderer.invoke("settings:set", { key, value })
+    }
+  },
   agentEndpoints: {
     list: (): Promise<AgentEndpoint[]> => {
       return ipcRenderer.invoke("agentEndpoints:list")

@@ -18,7 +18,8 @@ const RIGHT_MAX = 450
 const RIGHT_DEFAULT = 320
 
 function App(): React.JSX.Element {
-  const { currentThreadId, loadThreads, loadAgentEndpoints, showKanbanView } = useAppStore()
+  const { currentThreadId, loadThreads, loadAgentEndpoints, showKanbanView, loadTheme } =
+    useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
   const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
@@ -100,7 +101,7 @@ function App(): React.JSX.Element {
 
     async function init(): Promise<void> {
       try {
-        await Promise.all([loadThreads(), loadAgentEndpoints()])
+        await Promise.all([loadThreads(), loadAgentEndpoints(), loadTheme()])
       } catch (error) {
         console.error("Failed to initialize:", error)
       } finally {
@@ -136,7 +137,7 @@ function App(): React.JSX.Element {
             transformOrigin: "top left"
           }}
         >
-          <span className="app-badge-name">OPENWORK</span>
+          <span className="app-badge-name">OMNI OPENWORK</span>
           <span className="app-badge-version">{__APP_VERSION__}</span>
         </div>
 

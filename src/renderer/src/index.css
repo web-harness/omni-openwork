@@ -462,3 +462,40 @@ dock-wrapper:not(:defined) {
 .shiki-content .line:hover {
   background-color: var(--background-interactive);
 }
+
+[data-theme="light"] {
+  --background: #f5f5f7;
+  --background-elevated: #ffffff;
+  --background-interactive: #e8e8ed;
+  --foreground: #1c1c1e;
+  --border: #d1d1d6;
+  --border-emphasis: #aeaeb2;
+  --input: #d1d1d6;
+  --ring: #2563eb;
+  --muted: #ffffff;
+  --muted-foreground: #6c6c70;
+  --tertiary-foreground: #8e8e93;
+  --card: #ffffff;
+  --card-foreground: #1c1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1e;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1c1c1e;
+  --accent: #ea580c;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --status-critical: #dc2626;
+  --status-warning: #d97706;
+  --status-nominal: #16a34a;
+  --status-info: #2563eb;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1c1c1e;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e8ed;
+  --sidebar-accent-foreground: #1c1c1e;
+  --sidebar-border: #d1d1d6;
+  --sidebar-ring: #2563eb;
+}

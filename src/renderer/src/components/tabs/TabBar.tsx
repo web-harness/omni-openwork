@@ -1,4 +1,5 @@
 import { Bot, X, FileCode, FileText, FileJson, File } from "lucide-react"
+import { OmniText } from "@/components/ui/OmniText"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import { useThreadState, type OpenFile } from "@/lib/thread-context"
@@ -94,7 +95,12 @@ function FileTab({ file, isActive, onSelect, onClose }: FileTabProps): React.JSX
       title={file.path}
     >
       <FileIcon name={file.name} />
-      <span className="truncate">{file.name}</span>
+      <OmniText
+        className="flex-1 min-w-0 text-left"
+        text={file.name}
+        strategy="truncate"
+        maxLines={1}
+      />
       <button
         onClick={handleClose}
         className={cn(

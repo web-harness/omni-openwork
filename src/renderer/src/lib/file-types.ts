@@ -1,4 +1,15 @@
-export type FileType = "image" | "video" | "audio" | "pdf" | "code" | "text" | "binary"
+export type FileType =
+  | "image"
+  | "video"
+  | "audio"
+  | "pdf"
+  | "code"
+  | "text"
+  | "binary"
+  | "docx"
+  | "pptx"
+  | "spreadsheet"
+  | "markdown"
 
 interface FileTypeInfo {
   type: FileType
@@ -24,6 +35,11 @@ const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "ogg", "ogv", "mov", "avi", "wm
 const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "oga", "m4a", "flac", "aac", "weba"])
 
 const PDF_EXTENSIONS = new Set(["pdf"])
+
+const DOCX_EXTENSIONS = new Set(["docx"])
+const PPTX_EXTENSIONS = new Set(["pptx"])
+const SPREADSHEET_EXTENSIONS = new Set(["xlsx", "xls", "csv"])
+const MARKDOWN_EXTENSIONS = new Set(["md", "mdx", "markdown"])
 
 const CODE_EXTENSIONS = new Set([
   "ts",
@@ -56,9 +72,6 @@ const CODE_EXTENSIONS = new Set([
   "htm",
   "vue",
   "svelte",
-  "md",
-  "mdx",
-  "markdown",
   "sh",
   "bash",
   "zsh",
@@ -73,8 +86,6 @@ const CODE_EXTENSIONS = new Set([
 const TEXT_EXTENSIONS = new Set([
   "txt",
   "log",
-  "csv",
-  "tsv",
   "env",
   "gitignore",
   "editorconfig",
@@ -121,6 +132,22 @@ export function getFileType(fileName: string): FileTypeInfo {
       mimeType: "application/pdf",
       canPreview: true
     }
+  }
+
+  if (DOCX_EXTENSIONS.has(ext)) {
+    return { type: "docx", canPreview: true }
+  }
+
+  if (PPTX_EXTENSIONS.has(ext)) {
+    return { type: "pptx", canPreview: true }
+  }
+
+  if (SPREADSHEET_EXTENSIONS.has(ext)) {
+    return { type: "spreadsheet", canPreview: true }
+  }
+
+  if (MARKDOWN_EXTENSIONS.has(ext)) {
+    return { type: "markdown", canPreview: true }
   }
 
   if (CODE_EXTENSIONS.has(ext)) {
@@ -187,6 +214,13 @@ function getMimeType(ext: string): string {
 export function isBinaryFile(fileName: string): boolean {
   const { type } = getFileType(fileName)
   return (
-    type === "image" || type === "video" || type === "audio" || type === "pdf" || type === "binary"
+    type === "image" ||
+    type === "video" ||
+    type === "audio" ||
+    type === "pdf" ||
+    type === "binary" ||
+    type === "docx" ||
+    type === "pptx" ||
+    type === "spreadsheet"
   )
 }

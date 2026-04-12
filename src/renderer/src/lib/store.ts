@@ -38,6 +38,11 @@ interface AppState {
   activeAgentId: string | null
   dicebearStyle: string
 
+  // Theme
+  theme: "dark" | "light"
+  loadTheme: () => Promise<void>
+  setTheme: (theme: "dark" | "light") => Promise<void>
+
   // Thread actions
   loadThreads: () => Promise<void>
   createThread: (metadata?: Record<string, unknown>) => Promise<Thread>
@@ -90,6 +95,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   agentEndpoints: [buildMainAgent()],
   activeAgentId: null,
   dicebearStyle: "bottts-neutral",
+  theme: "dark",
 
   // Thread actions
   loadThreads: async () => {
@@ -282,5 +288,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     const fixed = agentEndpoints.filter((e) => !e.removable)
     const removable = agentEndpoints.filter((e) => e.removable)
     return [...fixed, ...removable]
+  },
+
+  loadTheme: async () => {
+    const value = await window.api.settings.get("theme")
+    const theme = value === "light" ? "light" : "dark"
+    set({ theme } as any)
+    document.documentElement.setAttribute("data-theme", theme)
+  },
+
+  setTheme: async (theme: "dark" | "light") => {
+    set({ theme } as any)
+    document.documentElement.setAttribute("data-theme", theme)
+    await window.api.settings.set("theme", theme)
   }
 }))

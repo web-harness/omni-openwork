@@ -112,6 +112,8 @@ export async function initializeDatabase(): Promise<SqlJsDatabase> {
   db.run(`CREATE INDEX IF NOT EXISTS idx_runs_thread_id ON runs(thread_id)`)
   db.run(`CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status)`)
 
+  db.run(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`)
+
   db.run(`
     CREATE TABLE IF NOT EXISTS agent_endpoints (
       id TEXT PRIMARY KEY,
@@ -338,5 +340,24 @@ export function upsertAgentEndpoint(
 export function deleteAgentEndpoint(id: string): void {
   const database = getDb()
   database.run("DELETE FROM agent_endpoints WHERE id = ?", [id])
+  saveToDisk()
+}
+
+export function getSetting(key: string): string | null {
+  const database = getDb()
+  const stmt = database.prepare("SELECT value FROM settings WHERE key = ?")
+  stmt.bind([key])
+  if (!stmt.step()) {
+    stmt.free()
+    return null
+  }
+  const row = stmt.getAsObject() as { value: string | null }
+  stmt.free()
+  return row.value
+}
+
+export function setSetting(key: string, value: string): void {
+  const database = getDb()
+  database.run("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [key, value])
   saveToDisk()
 }

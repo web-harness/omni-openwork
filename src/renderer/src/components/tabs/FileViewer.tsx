@@ -4,9 +4,13 @@ import { useCurrentThread } from "@/lib/thread-context"
 import { getFileType, isBinaryFile } from "@/lib/file-types"
 import { CodeViewer } from "./CodeViewer"
 import { ImageViewer } from "./ImageViewer"
-import { MediaViewer } from "./MediaViewer"
-import { PDFViewer } from "./PDFViewer"
+import { PlyrViewer } from "./PlyrViewer"
+import { PdfViewer } from "./PdfViewer"
 import { BinaryFileViewer } from "./BinaryFileViewer"
+import { DocxViewer } from "./DocxViewer"
+import { PptxViewer } from "./PptxViewer"
+import { SheetViewer } from "./SheetViewer"
+import { MarkdownViewer } from "./MarkdownViewer"
 
 interface FileViewerProps {
   filePath: string
@@ -118,33 +122,49 @@ export function FileViewer({ filePath, threadId }: FileViewerProps): React.JSX.E
   }
 
   if (fileTypeInfo.type === "video" && binaryContent) {
+    const videoUrl = `data:${fileTypeInfo.mimeType || "video/mp4"};base64,${binaryContent}`
     return (
-      <MediaViewer
-        filePath={filePath}
-        base64Content={binaryContent}
+      <PlyrViewer
+        sourceUrl={videoUrl}
+        type="video"
         mimeType={fileTypeInfo.mimeType || "video/mp4"}
-        mediaType="video"
       />
     )
   }
 
   if (fileTypeInfo.type === "audio" && binaryContent) {
+    const audioUrl = `data:${fileTypeInfo.mimeType || "audio/mpeg"};base64,${binaryContent}`
     return (
-      <MediaViewer
-        filePath={filePath}
-        base64Content={binaryContent}
+      <PlyrViewer
+        sourceUrl={audioUrl}
+        type="audio"
         mimeType={fileTypeInfo.mimeType || "audio/mpeg"}
-        mediaType="audio"
       />
     )
   }
 
   if (fileTypeInfo.type === "pdf" && binaryContent) {
-    return <PDFViewer filePath={filePath} base64Content={binaryContent} />
+    return <PdfViewer base64Content={binaryContent} filename={fileName} />
   }
 
   if (fileTypeInfo.type === "binary") {
     return <BinaryFileViewer filePath={filePath} size={fileSize} />
+  }
+
+  if (fileTypeInfo.type === "docx" && binaryContent) {
+    return <DocxViewer base64Content={binaryContent} filename={fileName} />
+  }
+
+  if (fileTypeInfo.type === "pptx" && binaryContent) {
+    return <PptxViewer base64Content={binaryContent} filename={fileName} />
+  }
+
+  if (fileTypeInfo.type === "spreadsheet" && binaryContent) {
+    return <SheetViewer base64Content={binaryContent} filename={fileName} />
+  }
+
+  if (fileTypeInfo.type === "markdown" && content !== undefined) {
+    return <MarkdownViewer value={content} />
   }
 
   // Default to code/text viewer
