@@ -310,14 +310,14 @@ export function ChatContainer({ threadId }: ChatContainerProps): React.JSX.Eleme
                 ) : (
                   <div className="text-sm text-center space-y-3">
                     <div>
-                      <span className="text-amber-500">Select a workspace folder</span>
+                      <span className="text-status-warning">Select a workspace folder</span>
                       <span className="block text-xs mt-1 opacity-75">
                         The agent needs a workspace to create and modify files
                       </span>
                     </div>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 h-7 text-xs gap-1.5 text-amber-500 hover:bg-accent/50 transition-color duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-2 h-7 text-xs gap-1.5 text-status-warning hover:bg-accent/50 transition-color duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleSelectWorkspaceFromEmptyState}
                     >
                       <Folder className="size-3.5" />

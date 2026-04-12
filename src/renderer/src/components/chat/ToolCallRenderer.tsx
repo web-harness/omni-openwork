@@ -586,7 +586,10 @@ export function ToolCallRenderer({
         )}
 
         <Icon
-          className={cn("size-4 shrink-0", needsApproval ? "text-amber-500" : "text-status-info")}
+          className={cn(
+            "size-4 shrink-0",
+            needsApproval ? "text-status-warning" : "text-status-info"
+          )}
         />
 
         <span className="text-xs font-medium shrink-0">{label}</span>

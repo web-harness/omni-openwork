@@ -41,7 +41,7 @@ export function ThreadKanbanCard({ thread, status, onClick }: ThreadCardProps): 
       <CardContent className="p-3">
         <div className="flex items-start gap-2">
           {status === "interrupted" ? (
-            <MessageSquare className="size-4 shrink-0 text-amber-500" />
+            <MessageSquare className="size-4 shrink-0 text-status-warning" />
           ) : (
             <ThreadStatusIcon threadId={thread.thread_id} />
           )}

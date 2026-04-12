@@ -7,15 +7,9 @@ async function main(): Promise<void> {
   const { initializeDatabase } = await import("../src/main/db")
   await initializeDatabase()
 
-  const { registerAgentHandlers } = await import("../src/main/ipc/agent")
-  const { registerAgentEndpointHandlers } = await import("../src/main/ipc/agent-endpoints")
-  const { registerThreadHandlers } = await import("../src/main/ipc/threads")
-  const { registerModelHandlers } = await import("../src/main/ipc/models")
+  const { registerAllHandlers } = await import("../src/main/ipc")
 
-  registerAgentHandlers(ipcMain)
-  registerAgentEndpointHandlers(ipcMain)
-  registerThreadHandlers(ipcMain)
-  registerModelHandlers(ipcMain)
+  registerAllHandlers(ipcMain)
 
   app.markReady()
 

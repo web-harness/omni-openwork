@@ -49,7 +49,7 @@ export function WorkspacePicker({ threadId }: WorkspacePickerProps): React.JSX.E
           size="sm"
           className={cn(
             "h-7 px-2 text-xs gap-1.5",
-            workspacePath ? "text-foreground" : "text-amber-500"
+            workspacePath ? "text-foreground" : "text-status-warning"
           )}
           disabled={!threadId}
         >

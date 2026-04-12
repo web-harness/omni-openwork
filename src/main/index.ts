@@ -1,10 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
-import { registerAgentHandlers } from "./ipc/agent"
-import { registerAgentEndpointHandlers } from "./ipc/agent-endpoints"
-import { registerThreadHandlers } from "./ipc/threads"
-import { registerModelHandlers } from "./ipc/models"
-import { registerSettingsHandlers } from "./ipc/settings"
+import { registerAllHandlers } from "./ipc"
 import { initializeDatabase } from "./db"
 
 let mainWindow: BrowserWindow | null = null
@@ -84,11 +80,7 @@ app.whenReady().then(async () => {
   await initializeDatabase()
 
   // Register IPC handlers
-  registerAgentHandlers(ipcMain)
-  registerAgentEndpointHandlers(ipcMain)
-  registerThreadHandlers(ipcMain)
-  registerModelHandlers(ipcMain)
-  registerSettingsHandlers(ipcMain)
+  registerAllHandlers(ipcMain)
 
   createWindow()
 

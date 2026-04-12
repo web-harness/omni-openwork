@@ -887,9 +887,9 @@ function FileIcon({
 }): React.JSX.Element {
   if (isDir) {
     return isOpen ? (
-      <FolderOpen className="size-3.5 text-amber-500 shrink-0" />
+      <FolderOpen className="size-3.5 text-status-warning shrink-0" />
     ) : (
-      <Folder className="size-3.5 text-amber-500 shrink-0" />
+      <Folder className="size-3.5 text-status-warning shrink-0" />
     )
   }
 
