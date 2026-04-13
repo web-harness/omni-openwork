@@ -15,19 +15,24 @@ export function MonacoViewer({
 }: MonacoViewerProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<unknown>(null)
+  const languageRef = useRef(language)
+  const readOnlyRef = useRef(readOnly)
+  const themeRef = useRef(theme)
+  const valueRef = useRef(value)
+  valueRef.current = value
 
   useEffect(() => {
     if (!containerRef.current) return
     const container = containerRef.current
-    let editor: any = null
+    let editor: { dispose(): void; getValue(): string; setValue(value: string): void } | null = null
 
     import("monaco-editor").then((monaco) => {
       if (!container.isConnected) return
       editor = monaco.editor.create(container, {
-        value,
-        language,
-        readOnly,
-        theme,
+        value: valueRef.current,
+        language: languageRef.current,
+        readOnly: readOnlyRef.current,
+        theme: themeRef.current,
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         automaticLayout: true,
@@ -44,7 +49,11 @@ export function MonacoViewer({
   }, [])
 
   useEffect(() => {
-    const editor: any = editorRef.current
+    const editor = editorRef.current as {
+      dispose(): void
+      getValue(): string
+      setValue(value: string): void
+    } | null
     if (editor && editor.getValue() !== value) {
       editor.setValue(value)
     }

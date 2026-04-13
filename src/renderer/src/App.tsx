@@ -7,6 +7,9 @@ import { KanbanView, KanbanHeader } from "@/components/kanban"
 import { ResizeHandle } from "@/components/ui/resizable"
 import { useAppStore } from "@/lib/store"
 import { ThreadProvider } from "@/lib/thread-context"
+import createDebug from "debug"
+
+const debug = createDebug("omni:app")
 
 // Badge requires ~235 screen pixels to display with comfortable margin
 const BADGE_MIN_SCREEN_WIDTH = 235
@@ -103,13 +106,13 @@ function App(): React.JSX.Element {
       try {
         await Promise.all([loadThreads(), loadAgentEndpoints(), loadTheme()])
       } catch (error) {
-        console.error("Failed to initialize:", error)
+        debug("Failed to initialize:", error)
       } finally {
         setIsLoading(false)
       }
     }
     init()
-  }, [loadThreads, loadAgentEndpoints])
+  }, [loadThreads, loadAgentEndpoints, loadTheme])
 
   if (isLoading) {
     return (

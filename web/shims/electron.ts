@@ -1,6 +1,9 @@
 import { directoryOpen, fileOpen } from "browser-fs-access"
 import EventEmitter from "eventemitter3"
 import * as fs from "fs"
+import createDebug from "debug"
+
+const debug = createDebug("omni:web:electron")
 
 export default {}
 
@@ -47,18 +50,22 @@ const BrowserWindow = class extends EventEmitter {
   }
 
   static fromWebContents(_: unknown): InstanceType<typeof BrowserWindow> | null {
-    return BrowserWindow.instance ?? null
+    return BrowserWindow.instance ?? new BrowserWindow()
   }
 
   webContents = new (class extends EventEmitter {
-    setWindowOpenHandler(_: unknown): void {}
+    setWindowOpenHandler(_: unknown): void {
+      return
+    }
 
     send(channel: string, ...args: unknown[]): void {
       ipcRenderer.emit(channel, null, ...args)
     }
   })()
 
-  loadFile(_path: string): void {}
+  loadFile(_path: string): void {
+    return
+  }
 }
 
 export { BrowserWindow }
@@ -123,7 +130,9 @@ export const dialog = {
 
         return { canceled: false, filePaths: paths }
       }
-    } catch {
+    } catch (e) {
+      debug("error: %O", e)
+
       return { canceled: true, filePaths: [] }
     }
   }
@@ -164,15 +173,25 @@ export const app = new (class extends EventEmitter {
     if (!fs.existsSync(p)) {
       try {
         fs.mkdirSync(p, { recursive: true })
-      } catch {}
+      } catch (e) {
+        debug("error: %O", e)
+
+        return p
+      }
     }
     return p
   }
 
-  setAppUserModelId(_id: string): void {}
+  setAppUserModelId(_id: string): void {
+    return
+  }
 
   get dock() {
-    return { setIcon: (_: unknown) => {} }
+    return {
+      setIcon: (_: unknown): void => {
+        return
+      }
+    }
   }
 })()
 

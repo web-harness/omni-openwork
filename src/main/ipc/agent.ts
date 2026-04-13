@@ -1,8 +1,9 @@
 import { IpcMain, BrowserWindow } from "electron"
 import { HumanMessage } from "@langchain/core/messages"
-import { Command } from "@langchain/langgraph"
+import { Command, type StreamMode } from "@langchain/langgraph"
 import { createAgentRuntime } from "../agent/runtime"
 import { getThread, updateThread } from "../db"
+import createDebug from "debug"
 import type {
   AgentInvokeParams,
   AgentResumeParams,
@@ -10,11 +11,13 @@ import type {
   AgentCancelParams
 } from "../types"
 
-// Track active runs for cancellation
+const debug = createDebug("omni:agent")
+
 const activeRuns = new Map<string, AbortController>()
+const AGENT_STREAM_MODE: StreamMode[] = ["messages", "values"]
 
 export function registerAgentHandlers(ipcMain: IpcMain): void {
-  console.log("[Agent] Registering agent handlers...")
+  debug("[Agent] Registering agent handlers...")
 
   // Handle agent invocation with streaming
   ipcMain.on(
@@ -23,14 +26,14 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       const channel = `agent:stream:${threadId}`
       const window = BrowserWindow.fromWebContents(event.sender)
 
-      console.log("[Agent] Received invoke request:", {
+      debug("[Agent] Received invoke request:", {
         threadId,
         message: message.substring(0, 50),
         modelId
       })
 
       if (!window) {
-        console.error("[Agent] No window found")
+        debug("[Agent] No window found")
         return
       }
 
@@ -38,7 +41,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       // This prevents concurrent streams which can cause checkpoint corruption
       const existingController = activeRuns.get(threadId)
       if (existingController) {
-        console.log("[Agent] Aborting existing stream for thread:", threadId)
+        debug("[Agent] Aborting existing stream for thread:", threadId)
         existingController.abort()
         activeRuns.delete(threadId)
       }
@@ -48,7 +51,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
 
       // Abort the stream if the window is closed/destroyed
       const onWindowClosed = (): void => {
-        console.log("[Agent] Window closed, aborting stream for thread:", threadId)
+        debug("[Agent] Window closed, aborting stream for thread:", threadId)
         abortController.abort()
       }
       window.once("closed", onWindowClosed)
@@ -57,7 +60,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
         // Get workspace path from thread metadata - REQUIRED
         const thread = getThread(threadId)
         const metadata = thread?.metadata ? JSON.parse(thread.metadata) : {}
-        console.log("[Agent] Thread metadata:", metadata)
+        debug("[Agent] Thread metadata:", metadata)
 
         const workspacePath = metadata.workspacePath as string | undefined
 
@@ -85,7 +88,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
           {
             configurable: { thread_id: threadId },
             signal: abortController.signal,
-            streamMode: ["messages", "values"],
+            streamMode: AGENT_STREAM_MODE,
             recursionLimit: 1000
           }
         )
@@ -118,7 +121,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
             error.message.includes("Controller is already closed"))
 
         if (!isAbortError) {
-          console.error("[Agent] Error:", error)
+          debug("[Agent] Error:", error)
           window.webContents.send(channel, {
             type: "error",
             error: error instanceof Error ? error.message : "Unknown error"
@@ -138,10 +141,10 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       const channel = `agent:stream:${threadId}`
       const window = BrowserWindow.fromWebContents(event.sender)
 
-      console.log("[Agent] Received resume request:", { threadId, command, modelId })
+      debug("[Agent] Received resume request:", { threadId, command, modelId })
 
       if (!window) {
-        console.error("[Agent] No window found for resume")
+        debug("[Agent] No window found for resume")
         return
       }
 
@@ -173,7 +176,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
         const config = {
           configurable: { thread_id: threadId },
           signal: abortController.signal,
-          streamMode: ["messages", "values"] as const,
+          streamMode: AGENT_STREAM_MODE,
           recursionLimit: 1000
         }
 
@@ -205,7 +208,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
             error.message.includes("Controller is already closed"))
 
         if (!isAbortError) {
-          console.error("[Agent] Resume error:", error)
+          debug("[Agent] Resume error:", error)
           window.webContents.send(channel, {
             type: "error",
             error: error instanceof Error ? error.message : "Unknown error"
@@ -223,7 +226,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
     const window = BrowserWindow.fromWebContents(event.sender)
 
     if (!window) {
-      console.error("[Agent] No window found for interrupt response")
+      debug("[Agent] No window found for interrupt response")
       return
     }
 
@@ -259,7 +262,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       const config = {
         configurable: { thread_id: threadId },
         signal: abortController.signal,
-        streamMode: ["messages", "values"] as const,
+        streamMode: AGENT_STREAM_MODE,
         recursionLimit: 1000
       }
 
@@ -295,7 +298,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
           error.message.includes("Controller is already closed"))
 
       if (!isAbortError) {
-        console.error("[Agent] Interrupt error:", error)
+        debug("[Agent] Interrupt error:", error)
         window.webContents.send(channel, {
           type: "error",
           error: error instanceof Error ? error.message : "Unknown error"
@@ -367,7 +370,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
           {
             configurable: { thread_id: threadId },
             signal: abortController.signal,
-            streamMode: ["messages", "values"]
+            streamMode: AGENT_STREAM_MODE
           }
         )
 
@@ -393,7 +396,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
             error.message.includes("Controller is already closed"))
 
         if (!isAbortError) {
-          console.error("[Agent] Remote stream error:", error)
+          debug("[Agent] Remote stream error:", error)
           window.webContents.send(channel, {
             type: "error",
             error: error instanceof Error ? error.message : "Unknown error"

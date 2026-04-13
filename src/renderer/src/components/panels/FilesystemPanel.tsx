@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:fs-panel")
+
 import { useState, useEffect } from "react"
 import {
   Folder,
@@ -51,14 +55,14 @@ export function FilesystemPanel() {
     const cleanup = window.api.workspace.onFilesChanged(async (data) => {
       // Only refresh if this is the current thread
       if (data.threadId === currentThreadId) {
-        console.log("[FilesystemPanel] Files changed, refreshing...")
+        debug("[FilesystemPanel] Files changed, refreshing...")
         try {
           const result = await window.api.workspace.loadFromDisk(data.threadId)
           if (result.success) {
             setWorkspaceFiles(result.files)
           }
         } catch (e) {
-          console.error("[FilesystemPanel] Error refreshing files:", e)
+          debug("[FilesystemPanel] Error refreshing files:", e)
         }
       }
     })
@@ -83,7 +87,7 @@ export function FilesystemPanel() {
         }
       }
     } catch (e) {
-      console.error("[FilesystemPanel] Select folder error:", e)
+      debug("[FilesystemPanel] Select folder error:", e)
     } finally {
       setLoading(false)
     }
@@ -100,7 +104,7 @@ export function FilesystemPanel() {
         setWorkspaceFiles(result.files)
       }
     } catch (e) {
-      console.error("[FilesystemPanel] Refresh error:", e)
+      debug("[FilesystemPanel] Refresh error:", e)
     } finally {
       setLoading(false)
     }

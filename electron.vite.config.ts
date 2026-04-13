@@ -6,7 +6,6 @@ import tailwindcss from "@tailwindcss/vite"
 
 const pkg = JSON.parse(readFileSync("./package.json", "utf-8"))
 
-// Plugin to copy resources to output
 function copyResources(): { name: string; closeBundle: () => void } {
   return {
     name: "copy-resources",
@@ -27,7 +26,6 @@ function copyResources(): { name: string; closeBundle: () => void } {
 
 export default defineConfig({
   main: {
-    // Bundle all dependencies into the main process
     build: {
       lib: {
         entry: "src/main/index.ts",

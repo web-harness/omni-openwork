@@ -30,12 +30,12 @@ function ThreadStatusIcon({ threadId }: { threadId: string }): React.JSX.Element
   const { isLoading } = useThreadStream(threadId)
   const { pendingApproval } = useCurrentThread(threadId)
 
-  if (isLoading) {
-    return <Loader2 className="size-4 shrink-0 text-status-info animate-spin" />
-  }
-
   if (pendingApproval) {
     return <AlertCircle className="size-4 shrink-0 text-status-warning" />
+  }
+
+  if (isLoading) {
+    return <Loader2 className="size-4 shrink-0 text-status-info animate-spin" />
   }
 
   return <MessageSquare className="size-4 shrink-0 text-muted-foreground" />

@@ -20,6 +20,9 @@ import {
   type CheckpointMetadata,
   copyCheckpoint
 } from "@langchain/langgraph-checkpoint"
+import createDebug from "debug"
+
+const debug = createDebug("omni:checkpointer")
 
 interface CheckpointRow {
   thread_id: string
@@ -69,7 +72,7 @@ export class SqlJsSaver extends BaseCheckpointSaver {
       const MAX_DB_SIZE = 100 * 1024 * 1024 // 100MB limit
 
       if (stats.size > MAX_DB_SIZE) {
-        console.warn(
+        debug(
           `[SqlJsSaver] Database file is too large (${Math.round(stats.size / 1024 / 1024)}MB). ` +
             `Creating fresh database to prevent memory issues.`
         )
@@ -77,14 +80,14 @@ export class SqlJsSaver extends BaseCheckpointSaver {
         const backupPath = this.dbPath + ".bak." + Date.now()
         try {
           renameSync(this.dbPath, backupPath)
-          console.log(`[SqlJsSaver] Old database backed up to: ${backupPath}`)
+          debug(`[SqlJsSaver] Old database backed up to: ${backupPath}`)
         } catch (e) {
-          console.warn("[SqlJsSaver] Could not backup old database:", e)
+          debug("[SqlJsSaver] Could not backup old database:", e)
           // Try to delete instead
           try {
             unlinkSync(this.dbPath)
           } catch (e2) {
-            console.error("[SqlJsSaver] Could not delete old database:", e2)
+            debug("[SqlJsSaver] Could not delete old database:", e2)
           }
         }
         this.db = new SQL.Database()

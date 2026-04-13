@@ -7,7 +7,7 @@ import eslintPluginReactHooks from "eslint-plugin-react-hooks"
 import eslintPluginReactRefresh from "eslint-plugin-react-refresh"
 
 export default defineConfig(
-  { ignores: ["**/node_modules", "**/dist", "**/out"] },
+  { ignores: ["**/node_modules", "**/dist", "**/out", "**/*.json"] },
   eslint.configs.recommended,
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
@@ -28,7 +28,15 @@ export default defineConfig(
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
       ...eslintPluginReactRefresh.configs.vite.rules,
-      "@typescript-eslint/explicit-function-return-type": "off"
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_"
+        }
+      ]
     }
   },
   eslintConfigPrettier

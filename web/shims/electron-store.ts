@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:web:store")
+
 class Store<T extends Record<string, unknown> = Record<string, unknown>> {
   private data: Map<string, unknown> = new Map()
   private name: string
@@ -18,13 +22,21 @@ class Store<T extends Record<string, unknown> = Record<string, unknown>> {
         const parsed = JSON.parse(stored)
         this.data = new Map(Object.entries(parsed))
       }
-    } catch {}
+    } catch (e) {
+      debug("error: %O", e)
+
+      return
+    }
   }
 
   private persist(): void {
     try {
       localStorage.setItem(this.getKey(), JSON.stringify(Object.fromEntries(this.data)))
-    } catch {}
+    } catch (e) {
+      debug("error: %O", e)
+
+      return
+    }
   }
 
   get<K extends keyof T>(key: K): T[K] | undefined
@@ -74,7 +86,9 @@ class Store<T extends Record<string, unknown> = Record<string, unknown>> {
     return this.data.size
   }
 
-  static initRenderer(): void {}
+  static initRenderer(): void {
+    return
+  }
 }
 
 export default Store

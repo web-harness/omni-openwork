@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:workspace")
+
 import { directoryOpen } from "browser-fs-access"
 
 export async function selectWorkspaceFolder(
@@ -33,7 +37,7 @@ export async function selectWorkspaceFolder(
     }
     if (setOpen) setOpen(false)
   } catch (e) {
-    console.error("[WorkspacePicker] Select folder error:", e)
+    debug("[WorkspacePicker] Select folder error:", e)
   } finally {
     setLoading(false)
   }

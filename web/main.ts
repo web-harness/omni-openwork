@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:web")
+
 import { waitForInitialization } from "./initialize"
 import { app, ipcMain } from "./shims/electron"
 
@@ -18,5 +22,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("[web/main] Startup failed:", err)
+  debug("[web/main] Startup failed:", err)
 })

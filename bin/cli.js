@@ -43,15 +43,17 @@ const child = spawn(electron, [mainPath, ...args], {
 })
 
 // Forward signals to child process
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function forwardSignal(signal) {
+process.on("SIGINT", () => {
   if (child.pid) {
-    process.kill(child.pid, signal)
+    process.kill(child.pid, "SIGINT")
   }
-}
+})
 
-process.on("SIGINT", () => forwardSignal("SIGINT"))
-process.on("SIGTERM", () => forwardSignal("SIGTERM"))
+process.on("SIGTERM", () => {
+  if (child.pid) {
+    process.kill(child.pid, "SIGTERM")
+  }
+})
 
 // Exit with the same code as the child
 child.on("close", (code) => {

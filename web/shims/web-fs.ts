@@ -1,5 +1,9 @@
 import * as fs from "fs"
 import * as nodePath from "path"
+import createDebug from "debug"
+
+const debug = createDebug("omni:web:fs")
+
 import type {
   BufferEncoding,
   CpOptions,
@@ -48,7 +52,7 @@ export class ZenFs implements IFileSystem {
       if (part === "..") out.pop()
       else out.push(part)
     }
-    return `/${out.join("/")}` || "/"
+    return `/${out.join("/")}`
   }
 
   async readFile(p: string, opts?: ReadFileOptions | BufferEncoding): Promise<string> {
@@ -154,7 +158,11 @@ export class ZenFs implements IFileSystem {
           out.push(vp)
           if (e.isDirectory()) walk(nodePath.join(dir, e.name), vp)
         }
-      } catch {}
+      } catch (e) {
+        debug("error: %O", e)
+
+        return
+      }
     }
     walk(this.root, "/")
     return out

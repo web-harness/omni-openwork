@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:right-panel")
+
 import { useState, useRef, useCallback, useEffect, useMemo, memo } from "react"
 import {
   ListTodo,
@@ -545,7 +549,7 @@ function FilesContent(): React.JSX.Element {
     const cleanup = window.api.workspace.onFilesChanged(async (data) => {
       // Only reload if the event is for the current thread
       if (data.threadId === currentThreadId) {
-        console.log("[FilesContent] Files changed, reloading...", data)
+        debug("[FilesContent] Files changed, reloading...", data)
         const result = await window.api.workspace.loadFromDisk(currentThreadId)
         if (result.success && result.files) {
           setWorkspaceFiles(result.files)
@@ -572,7 +576,7 @@ function FilesContent(): React.JSX.Element {
         }
       }
     } catch (e) {
-      console.error("[FilesContent] Select folder error:", e)
+      debug("[FilesContent] Select folder error:", e)
     } finally {
       setSyncing(false)
     }
@@ -590,7 +594,7 @@ function FilesContent(): React.JSX.Element {
     }
 
     // syncToDisk is not yet implemented
-    console.warn("[FilesContent] syncToDisk is not yet implemented")
+    debug("[FilesContent] syncToDisk is not yet implemented")
   }
 
   return (

@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:chat")
+
 import { useRef, useEffect, useMemo, useCallback } from "react"
 import { Send, Square, Loader2, AlertCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -74,7 +78,7 @@ export function ChatContainer({ threadId }: ChatContainerProps): React.JSX.Eleme
           config: { configurable: { thread_id: threadId, model_id: currentModel } }
         })
       } catch (err) {
-        console.error("[ChatContainer] Resume command failed:", err)
+        debug("[ChatContainer] Resume command failed:", err)
       }
     },
     [pendingApproval, setPendingApproval, stream, threadId, currentModel]

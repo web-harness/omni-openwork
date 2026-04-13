@@ -4,8 +4,10 @@ import tailwindcss from "@tailwindcss/vite"
 import { resolve } from "path"
 import { createRequire } from "module"
 import { readFileSync } from "fs"
+import type { ServerResponse } from "http"
 import { nodePolyfills } from "vite-plugin-node-polyfills"
-import type { Plugin } from "vite"
+import type { Plugin, Connect } from "vite"
+import type { PluginBuild } from "esbuild"
 
 const _require = createRequire(import.meta.url)
 const pkg = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: string }
@@ -13,6 +15,11 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: st
 const root = resolve(__dirname)
 const webDir = resolve(root, "web")
 const srcDir = resolve(root, "src")
+const crossOriginIsolationHeaders = {
+  "Cross-Origin-Embedder-Policy": "require-corp",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin"
+}
 
 const fileShims: Record<string, string> = {
   async_hooks: resolve(webDir, "shims/async-hooks.ts"),
@@ -34,7 +41,7 @@ const packageShims: Record<string, string> = {
 function esbuildShimsPlugin() {
   return {
     name: "vite-web-shims",
-    setup(build: any) {
+    setup(build: PluginBuild) {
       build.onResolve({ filter: /.*/ }, (args: { path: string }) => {
         let id = args.path
         if (id.startsWith("node:")) id = id.slice(5)
@@ -77,10 +84,12 @@ function serveWebIndex(): Plugin {
   return {
     name: "serve-web-index",
     configureServer(server) {
-      server.middlewares.use((req: any, _res: any, next: any) => {
-        if (req.url === "/" || req.url === "") req.url = "/web/index.html"
-        next()
-      })
+      server.middlewares.use(
+        (req: Connect.IncomingMessage, _res: ServerResponse, next: Connect.NextFunction) => {
+          if (req.url === "/" || req.url === "") req.url = "/web/index.html"
+          next()
+        }
+      )
     }
   }
 }
@@ -137,6 +146,7 @@ export default defineConfig({
         "fs",
         "path",
         "crypto",
+        // @ts-expect-error - not in types
         "async_hooks",
         "child_process",
         "events",
@@ -174,6 +184,13 @@ export default defineConfig({
 
   server: {
     port: 3000,
-    host: "0.0.0.0"
+    host: "0.0.0.0",
+    headers: crossOriginIsolationHeaders
+  },
+
+  preview: {
+    port: 3000,
+    host: "0.0.0.0",
+    headers: crossOriginIsolationHeaders
   }
 })

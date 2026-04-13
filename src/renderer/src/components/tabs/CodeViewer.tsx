@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:code-viewer")
+
 import { useEffect, useState, useMemo } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { createHighlighterCore, type HighlighterCore } from "shiki/core"
@@ -112,7 +116,7 @@ export function CodeViewer({ filePath, content }: CodeViewerProps) {
       }
 
       try {
-        console.log("[CodeViewer] Starting highlight for", language)
+        debug("[CodeViewer] Starting highlight for", language)
         const highlighter = await getHighlighter()
 
         if (cancelled) return
@@ -124,10 +128,10 @@ export function CodeViewer({ filePath, content }: CodeViewerProps) {
 
         if (cancelled) return
 
-        console.log("[CodeViewer] Highlighting complete, html length:", html.length)
+        debug("[CodeViewer] Highlighting complete, html length:", html.length)
         setHighlightedHtml(html)
       } catch (e) {
-        console.error("[CodeViewer] Shiki highlighting failed:", e)
+        debug("[CodeViewer] Shiki highlighting failed:", e)
         setHighlightedHtml(null)
       }
     }

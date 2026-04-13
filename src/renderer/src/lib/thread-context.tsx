@@ -9,6 +9,9 @@ import {
   useSyncExternalStore,
   type ReactNode
 } from "react"
+import createDebug from "debug"
+
+const debug = createDebug("omni:thread-context")
 
 /* eslint-disable react-refresh/only-export-components */
 import { useStream } from "@langchain/langgraph-sdk/react"
@@ -274,7 +277,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     (threadId: string): ThreadState => {
       const state = threadStates[threadId] || createDefaultThreadState()
       if (state.pendingApproval) {
-        console.log(
+        debug(
           "[ThreadContext] getThreadState returning pendingApproval for:",
           threadId,
           state.pendingApproval
@@ -347,7 +350,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   // Handle errors from ThreadStreamHolder
   const handleError = useCallback(
     (threadId: string, error: Error) => {
-      console.error("[ThreadContext] Stream error:", { threadId, error })
+      debug("[ThreadContext] Stream error:", { threadId, error })
       const userFriendlyMessage = parseErrorMessage(error)
       updateThreadState(threadId, () => ({ error: userFriendlyMessage }))
     },
@@ -357,15 +360,11 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   // Handle custom events from ThreadStreamHolder (interrupts, workspace updates, etc.)
   const handleCustomEvent = useCallback(
     (threadId: string, data: CustomEventData) => {
-      console.log("[ThreadContext] Custom event received:", { threadId, type: data.type, data })
+      debug("[ThreadContext] Custom event received:", { threadId, type: data.type, data })
       switch (data.type) {
         case "interrupt":
           if (data.request) {
-            console.log(
-              "[ThreadContext] Setting pendingApproval for thread:",
-              threadId,
-              data.request
-            )
+            debug("[ThreadContext] Setting pendingApproval for thread:", threadId, data.request)
             updateThreadState(threadId, () => ({ pendingApproval: data.request }))
           }
           break
@@ -401,7 +400,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
           // Only update if we have meaningful token values (> 0)
           // This prevents resetting the usage when streaming ends
           if (data.usage && data.usage.inputTokens !== undefined && data.usage.inputTokens > 0) {
-            console.log("[ThreadContext] Token usage update:", {
+            debug("[ThreadContext] Token usage update:", {
               threadId,
               inputTokens: data.usage.inputTokens,
               outputTokens: data.usage.outputTokens,
@@ -558,7 +557,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error) {
-        console.error("[ThreadContext] Failed to load thread details:", error)
+        debug("[ThreadContext] Failed to load thread details:", error)
       }
 
       // Load thread history from checkpoints
@@ -676,7 +675,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error) {
-        console.error("[ThreadContext] Failed to load thread history:", error)
+        debug("[ThreadContext] Failed to load thread history:", error)
       }
     },
     [getThreadActions, updateThreadState]

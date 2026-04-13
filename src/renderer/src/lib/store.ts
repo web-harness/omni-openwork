@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:store")
+
 import { create } from "zustand"
 import type { Thread, ModelConfig, Provider, AgentEndpoint } from "@/types"
 
@@ -131,10 +135,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteThread: async (threadId: string) => {
-    console.log("[Store] Deleting thread:", threadId)
+    debug("[Store] Deleting thread:", threadId)
     try {
       await window.api.threads.delete(threadId)
-      console.log("[Store] Thread deleted from backend")
+      debug("[Store] Thread deleted from backend")
 
       set((state) => {
         const threads = state.threads.filter((t) => t.thread_id !== threadId)
@@ -149,7 +153,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       })
     } catch (error) {
-      console.error("[Store] Failed to delete thread:", error)
+      debug("[Store] Failed to delete thread:", error)
     }
   },
 
@@ -165,7 +169,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const generatedTitle = await window.api.threads.generateTitle(content)
       await get().updateThread(threadId, { title: generatedTitle })
     } catch (error) {
-      console.error("[Store] Failed to generate title:", error)
+      debug("[Store] Failed to generate title:", error)
     }
   },
 
@@ -181,16 +185,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setApiKey: async (providerId: string, apiKey: string) => {
-    console.log("[Store] setApiKey called:", { providerId, keyLength: apiKey.length })
+    debug("[Store] setApiKey called:", { providerId, keyLength: apiKey.length })
     try {
       await window.api.models.setApiKey(providerId, apiKey)
-      console.log("[Store] API key saved via IPC")
+      debug("[Store] API key saved via IPC")
       // Reload providers and models to update availability
       await get().loadProviders()
       await get().loadModels()
-      console.log("[Store] Providers and models reloaded")
+      debug("[Store] Providers and models reloaded")
     } catch (e) {
-      console.error("[Store] Failed to set API key:", e)
+      debug("[Store] Failed to set API key:", e)
       throw e
     }
   },
@@ -293,12 +297,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadTheme: async () => {
     const value = await window.api.settings.get("theme")
     const theme = value === "light" ? "light" : "dark"
-    set({ theme } as any)
+    set({ theme })
     document.documentElement.setAttribute("data-theme", theme)
   },
 
   setTheme: async (theme: "dark" | "light") => {
-    set({ theme } as any)
+    set({ theme })
     document.documentElement.setAttribute("data-theme", theme)
     await window.api.settings.set("theme", theme)
   }

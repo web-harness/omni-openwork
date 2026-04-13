@@ -40,7 +40,7 @@ export function OmniText({
         while (size > minSize) {
           const font = fontStr.replace(/[\d.]+px/, `${size}px`)
           const prepared = prepare(text, font)
-          const stats = measureLineStats(prepared as any, width)
+          const stats = measureLineStats(prepared as Parameters<typeof measureLineStats>[0], width)
           if (stats.lineCount <= maxLines) break
           size -= 0.5
         }
@@ -51,7 +51,9 @@ export function OmniText({
 
       // truncate strategy
       const prepared = prepare(text, fontStr)
-      const naturalWidth = measureNaturalWidth(prepared as any)
+      const naturalWidth = measureNaturalWidth(
+        prepared as Parameters<typeof measureNaturalWidth>[0]
+      )
       if (naturalWidth <= width * maxLines) {
         setDisplayText(text)
         return
@@ -64,7 +66,7 @@ export function OmniText({
         const mid = Math.floor((lo + hi + 1) / 2)
         const truncated = text.slice(0, mid) + "…"
         const p = prepare(truncated, fontStr)
-        const stats = measureLineStats(p as any, width)
+        const stats = measureLineStats(p as Parameters<typeof measureLineStats>[0], width)
         if (stats.lineCount <= maxLines) {
           lo = mid
         } else {

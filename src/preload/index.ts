@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:preload")
+
 import { contextBridge, ipcRenderer } from "electron"
 import type {
   Thread,
@@ -281,7 +285,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld("electron", electronAPI)
     contextBridge.exposeInMainWorld("api", api)
   } catch (error) {
-    console.error(error)
+    debug(error)
   }
 } else {
   // @ts-ignore (define in dts)

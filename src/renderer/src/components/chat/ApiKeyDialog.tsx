@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:api-key")
+
 import { useState, useEffect } from "react"
 import { Eye, EyeOff, Loader2, Trash2 } from "lucide-react"
 import {
@@ -62,7 +66,7 @@ export function ApiKeyDialog({
     if (showBaseUrlField && !baseUrl.trim()) return
     if (!provider) return
 
-    console.log("[ApiKeyDialog] Saving API key for provider:", provider.id)
+    debug("[ApiKeyDialog] Saving API key for provider:", provider.id)
     setSaving(true)
     try {
       await saveApiKey(provider.id, apiKey.trim())
@@ -73,10 +77,10 @@ export function ApiKeyDialog({
           await deleteBaseUrl(provider.id)
         }
       }
-      console.log("[ApiKeyDialog] API key saved successfully")
+      debug("[ApiKeyDialog] API key saved successfully")
       onOpenChange(false)
     } catch (e) {
-      console.error("[ApiKeyDialog] Failed to save API key:", e)
+      debug("[ApiKeyDialog] Failed to save API key:", e)
     } finally {
       setSaving(false)
     }
@@ -92,7 +96,7 @@ export function ApiKeyDialog({
       }
       onOpenChange(false)
     } catch (e) {
-      console.error("Failed to delete API key:", e)
+      debug("Failed to delete API key:", e)
     } finally {
       setDeleting(false)
     }

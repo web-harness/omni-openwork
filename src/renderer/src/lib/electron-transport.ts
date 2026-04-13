@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:transport")
+
 import type { UseStreamTransport } from "@langchain/langgraph-sdk/react"
 import type { ToolCall, ToolCallChunk } from "@langchain/core/messages"
 import type { StreamPayload, StreamEvent, IPCEvent, IPCStreamEvent } from "../../../types"
@@ -495,7 +499,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
         break
     }
 
-    console.log(
+    debug(
       "[Transport] convertToSDKEvents total:",
       events.length,
       "events",
@@ -581,7 +585,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
         // Usage metadata is present on completed AI messages (not streaming chunks)
         const usageMetadata = kwargs.usage_metadata || kwargs.response_metadata?.usage
         if (usageMetadata) {
-          console.log("[ElectronTransport] Found usage_metadata:", {
+          debug("[ElectronTransport] Found usage_metadata:", {
             input_tokens: usageMetadata.input_tokens,
             output_tokens: usageMetadata.output_tokens,
             total_tokens: usageMetadata.total_tokens,
@@ -864,8 +868,8 @@ export class ElectronIPCTransport implements UseStreamTransport {
             this.activeSubagents.set(chunk.id, subagent)
             events.push(this.createSubagentEvent())
           }
-        } catch {
-          // Args not complete yet, continue accumulating
+        } catch (e) {
+          debug("error: %O", e)
         }
       }
     }

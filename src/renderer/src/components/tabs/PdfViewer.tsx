@@ -5,10 +5,7 @@ interface PdfViewerProps {
   filename: string
 }
 
-export function PdfViewer({
-  base64Content,
-  filename: _filename
-}: PdfViewerProps): React.JSX.Element {
+export function PdfViewer({ base64Content }: PdfViewerProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

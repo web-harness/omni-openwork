@@ -10,6 +10,9 @@ import {
 import { getCheckpointer, closeCheckpointer } from "../agent/runtime"
 import { deleteThreadCheckpoint } from "../storage"
 import { generateTitle } from "../services/title-generator"
+import createDebug from "debug"
+
+const debug = createDebug("omni:threads")
 import type { Thread, ThreadUpdateParams } from "../types"
 
 export function registerThreadHandlers(ipcMain: IpcMain): void {
@@ -103,26 +106,26 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
 
   // Delete a thread
   ipcMain.handle("threads:delete", async (_event, threadId: string) => {
-    console.log("[Threads] Deleting thread:", threadId)
+    debug("[Threads] Deleting thread:", threadId)
 
     // Delete from our metadata store
     dbDeleteThread(threadId)
-    console.log("[Threads] Deleted from metadata store")
+    debug("[Threads] Deleted from metadata store")
 
     // Close any open checkpointer for this thread
     try {
       await closeCheckpointer(threadId)
-      console.log("[Threads] Closed checkpointer")
+      debug("[Threads] Closed checkpointer")
     } catch (e) {
-      console.warn("[Threads] Failed to close checkpointer:", e)
+      debug("[Threads] Failed to close checkpointer:", e)
     }
 
     // Delete the thread's checkpoint file
     try {
       deleteThreadCheckpoint(threadId)
-      console.log("[Threads] Deleted checkpoint file")
+      debug("[Threads] Deleted checkpoint file")
     } catch (e) {
-      console.warn("[Threads] Failed to delete checkpoint file:", e)
+      debug("[Threads] Failed to delete checkpoint file:", e)
     }
   })
 
@@ -140,7 +143,7 @@ export function registerThreadHandlers(ipcMain: IpcMain): void {
 
       return history
     } catch (e) {
-      console.warn("Failed to get thread history:", e)
+      debug("Failed to get thread history:", e)
       return []
     }
   })

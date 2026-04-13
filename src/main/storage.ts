@@ -1,7 +1,7 @@
 import { homedir } from "os"
 import { join } from "path"
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "fs"
-const OPENWORK_DIR = join(homedir(), ".openwork")
+const OPENWORK_DIR = join(homedir(), ".omni-openwork")
 const ENV_FILE = join(OPENWORK_DIR, ".env")
 
 const ENV_VAR_NAMES: Record<string, string> = {

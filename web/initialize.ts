@@ -1,3 +1,7 @@
+import createDebug from "debug"
+
+const debug = createDebug("omni:web:init")
+
 import { configure } from "@zenfs/core"
 import { IndexedDB } from "@zenfs/dom"
 
@@ -14,7 +18,7 @@ async function init(): Promise<void> {
 }
 
 const initPromise = init().catch((err) => {
-  console.error("[ZenFS] Initialization failed:", err)
+  debug("[ZenFS] Initialization failed:", err)
 })
 
 export function isInitialized(): boolean {

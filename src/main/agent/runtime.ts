@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createDeepAgent } from "deepagents"
 import { getDefaultModel } from "../ipc/models"
 import { getApiKey, getBaseUrl, getThreadCheckpointPath } from "../storage"
 import { ChatOpenAI } from "@langchain/openai"
 import { SqlJsSaver } from "../checkpointer/sqljs-saver"
 import { LocalSandbox } from "./local-sandbox"
+import createDebug from "debug"
+
+const debug = createDebug("omni:runtime")
 
 import type * as _lcTypes from "langchain"
 import type * as _lcMessages from "@langchain/core/messages"
@@ -61,7 +63,7 @@ function getModelInstance(modelId?: string): ChatOpenAI | string {
   console.log("[Runtime] Using model:", model)
 
   const apiKey = getApiKey("openai")
-  console.log("[Runtime] OpenAI API key present:", !!apiKey)
+  debug("[Runtime] OpenAI API key present:", !!apiKey)
   if (!apiKey) {
     throw new Error("OpenAI API key not configured")
   }
@@ -69,7 +71,7 @@ function getModelInstance(modelId?: string): ChatOpenAI | string {
   const baseUrl = getBaseUrl("openai")
   return new ChatOpenAI({
     model,
-    openAIApiKey: apiKey,
+    apiKey,
     ...(baseUrl ? { configuration: { baseURL: baseUrl } } : {})
   })
 }
@@ -103,15 +105,15 @@ export async function createAgentRuntime(options: CreateAgentRuntimeOptions) {
     )
   }
 
-  console.log("[Runtime] Creating agent runtime...")
-  console.log("[Runtime] Thread ID:", threadId)
-  console.log("[Runtime] Workspace path:", workspacePath)
+  debug("[Runtime] Creating agent runtime...")
+  debug("[Runtime] Thread ID:", threadId)
+  debug("[Runtime] Workspace path:", workspacePath)
 
-  const model = getModelInstance(modelId)
-  console.log("[Runtime] Model instance created:", typeof model)
+  const model = await getModelInstance(modelId)
+  debug("[Runtime] Model instance created:", typeof model)
 
   const checkpointer = await getCheckpointer(threadId)
-  console.log("[Runtime] Checkpointer ready for thread:", threadId)
+  debug("[Runtime] Checkpointer ready for thread:", threadId)
 
   const backend = new LocalSandbox({
     rootDir: workspacePath,
@@ -156,7 +158,7 @@ The workspace root is: ${workspacePath}`
     subagents
   } as Parameters<typeof createDeepAgent>[0])
 
-  console.log("[Runtime] Deep agent created with LocalSandbox at:", workspacePath)
+  debug("[Runtime] Deep agent created with LocalSandbox at:", workspacePath)
   return agent
 }
 

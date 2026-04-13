@@ -2,6 +2,9 @@ import initSqlJs, { Database as SqlJsDatabase } from "sql.js"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
 import { dirname } from "path"
 import { getDbPath } from "../storage"
+import createDebug from "debug"
+
+const debug = createDebug("omni:db")
 
 let db: SqlJsDatabase | null = null
 let saveTimer: ReturnType<typeof setTimeout> | null = null
@@ -52,7 +55,7 @@ export function getDb(): SqlJsDatabase {
 
 export async function initializeDatabase(): Promise<SqlJsDatabase> {
   const dbPath = getDbPath()
-  console.log("Initializing database at:", dbPath)
+  debug("Initializing database at:", dbPath)
 
   const SQL = await initSqlJs()
 
@@ -128,7 +131,7 @@ export async function initializeDatabase(): Promise<SqlJsDatabase> {
 
   saveToDisk()
 
-  console.log("Database initialized successfully")
+  debug("Database initialized successfully")
   return db
 }
 

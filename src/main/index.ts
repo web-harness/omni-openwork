@@ -2,6 +2,9 @@ import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
 import { registerAllHandlers } from "./ipc"
 import { initializeDatabase } from "./db"
+import createDebug from "debug"
+
+const debug = createDebug("omni:main")
 
 let mainWindow: BrowserWindow | null = null
 
@@ -48,7 +51,7 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   // Set app user model id for windows
   if (process.platform === "win32") {
-    app.setAppUserModelId(isDev ? process.execPath : "com.langchain.openwork")
+    app.setAppUserModelId(isDev ? process.execPath : "com.omni.openwork")
   }
 
   // Set dock icon on macOS
@@ -59,8 +62,8 @@ app.whenReady().then(async () => {
       if (!icon.isEmpty()) {
         app.dock.setIcon(icon)
       }
-    } catch {
-      // Icon not found, use default
+    } catch (e) {
+      debug("error: %O", e)
     }
   }
 

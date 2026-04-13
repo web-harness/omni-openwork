@@ -1,11 +1,13 @@
+import { Duplex } from "stream"
+import * as constants from "constants-browserify"
 import EventEmitter from "eventemitter3"
-import type { Duplex } from "stream"
 
 function makeStream(isError: boolean): Duplex {
-  const { Duplex } = require("stream")
   const s = new Duplex()
-  s._read = () => {}
-  s._write = (chunk: unknown, _enc: BufferEncoding, cb: (err?: Error | null) => void) => {
+  s._read = (): void => {
+    return
+  }
+  s._write = (chunk: unknown, _enc: BufferEncoding, cb: (err?: Error | null) => void): void => {
     if (isError) console.error(String(chunk))
     else console.log(String(chunk))
     cb()
@@ -71,7 +73,7 @@ export default new (class extends EventEmitter {
   }
 
   binding(name: string): unknown {
-    if (name === "constants") return require("constants-browserify")
+    if (name === "constants") return constants
     throw new Error(`process.binding("${name}") not supported`)
   }
 

@@ -1,11 +1,11 @@
 import * as fs from "fs"
 import * as path from "path"
 import { BrowserWindow } from "electron"
+import createDebug from "debug"
 
-// Store active watchers by thread ID
+const debug = createDebug("omni:watcher")
+
 const activeWatchers = new Map<string, fs.FSWatcher>()
-
-// Debounce timers to prevent rapid-fire updates
 const debounceTimers = new Map<string, NodeJS.Timeout>()
 
 const DEBOUNCE_DELAY = 500 // ms
@@ -22,11 +22,11 @@ export function startWatching(threadId: string, workspacePath: string): void {
   try {
     const stat = fs.statSync(workspacePath)
     if (!stat.isDirectory()) {
-      console.warn(`[WorkspaceWatcher] Path is not a directory: ${workspacePath}`)
+      debug(`[WorkspaceWatcher] Path is not a directory: ${workspacePath}`)
       return
     }
   } catch (e) {
-    console.warn(`[WorkspaceWatcher] Cannot access path: ${workspacePath}`, e)
+    debug(`[WorkspaceWatcher] Cannot access path: ${workspacePath}`, e)
     return
   }
 
@@ -41,7 +41,7 @@ export function startWatching(threadId: string, workspacePath: string): void {
         }
       }
 
-      console.log(`[WorkspaceWatcher] ${eventType}: ${filename} in thread ${threadId}`)
+      debug(`[WorkspaceWatcher] ${eventType}: ${filename} in thread ${threadId}`)
 
       // Debounce to prevent rapid updates
       const existingTimer = debounceTimers.get(threadId)
@@ -58,14 +58,14 @@ export function startWatching(threadId: string, workspacePath: string): void {
     })
 
     watcher.on("error", (error) => {
-      console.error(`[WorkspaceWatcher] Error watching ${workspacePath}:`, error)
+      debug(`[WorkspaceWatcher] Error watching ${workspacePath}:`, error)
       stopWatching(threadId)
     })
 
     activeWatchers.set(threadId, watcher)
-    console.log(`[WorkspaceWatcher] Started watching ${workspacePath} for thread ${threadId}`)
+    debug(`[WorkspaceWatcher] Started watching ${workspacePath} for thread ${threadId}`)
   } catch (e) {
-    console.error(`[WorkspaceWatcher] Failed to start watching ${workspacePath}:`, e)
+    debug(`[WorkspaceWatcher] Failed to start watching ${workspacePath}:`, e)
   }
 }
 
@@ -77,7 +77,7 @@ export function stopWatching(threadId: string): void {
   if (watcher) {
     watcher.close()
     activeWatchers.delete(threadId)
-    console.log(`[WorkspaceWatcher] Stopped watching for thread ${threadId}`)
+    debug(`[WorkspaceWatcher] Stopped watching for thread ${threadId}`)
   }
 
   const timer = debounceTimers.get(threadId)
