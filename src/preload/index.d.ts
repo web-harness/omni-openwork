@@ -7,6 +7,12 @@ import type {
   RemoteAgentConfig
 } from "../main/types"
 import type { AgentEndpoint } from "../renderer/src/types"
+import type {
+  WebLLMStatus,
+  WebLLMInvokePayload,
+  WebLLMInvokeResult,
+  WebLLMToolResult
+} from "../types"
 
 interface ElectronAPI {
   ipcRenderer: {
@@ -120,6 +126,19 @@ interface CustomAPI {
     list: () => Promise<AgentEndpoint[]>
     upsert: (endpoint: AgentEndpoint) => Promise<AgentEndpoint>
     delete: (id: string) => Promise<void>
+  }
+  webllm: {
+    reportReady: () => void
+    reportStatus: (status: WebLLMStatus) => void
+    requestTool: (
+      invokeId: string,
+      toolCallId: string,
+      name: string,
+      args: Record<string, unknown>
+    ) => Promise<WebLLMToolResult>
+    sendInvokeResult: (result: WebLLMInvokeResult) => void
+    onInvoke: (callback: (payload: WebLLMInvokePayload) => void) => () => void
+    onCancel: (callback: (invokeId: string) => void) => () => void
   }
 }
 

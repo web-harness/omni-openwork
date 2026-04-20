@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
 import { registerAllHandlers } from "./ipc"
 import { initializeDatabase } from "./db"
+import { registerBrowserWindow } from "./webllm/ipc"
 import createDebug from "debug"
 
 const debug = createDebug("omni:main")
@@ -84,6 +85,13 @@ app.whenReady().then(async () => {
 
   // Register IPC handlers
   registerAllHandlers(ipcMain)
+
+  // Register the WebLLM broker BEFORE createWindow() so the main window is captured.
+  // browser-window-created fires synchronously when new BrowserWindow() is called, so
+  // the listener must exist before createWindow() runs.
+  app.on("browser-window-created", (_, window) => {
+    registerBrowserWindow(window)
+  })
 
   createWindow()
 

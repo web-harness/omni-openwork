@@ -149,3 +149,5 @@ export interface AgentEndpointState {
   activeAgentId: string | null
   dicebearStyle: string
 }
+
+export type { WebLLMPhase } from "../../types"

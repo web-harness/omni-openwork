@@ -12,6 +12,12 @@ import type {
   RemoteAgentConfig
 } from "../main/types"
 import type { AgentEndpoint } from "../renderer/src/types"
+import type {
+  WebLLMStatus,
+  WebLLMInvokePayload,
+  WebLLMInvokeResult,
+  WebLLMToolResult
+} from "../types"
 
 // Simple electron API - replaces @electron-toolkit/preload
 const electronAPI = {
@@ -275,6 +281,47 @@ const api = {
     },
     delete: (id: string): Promise<void> => {
       return ipcRenderer.invoke("agentEndpoints:delete", id)
+    }
+  },
+  webllm: {
+    // Renderer → Main: notify main the engine is ready
+    reportReady: (): void => {
+      ipcRenderer.send("webllm:ready")
+    },
+    // Renderer → Main: send status updates
+    reportStatus: (status: WebLLMStatus): void => {
+      ipcRenderer.send("webllm:status", status)
+    },
+    // Renderer → Main: send tool execution request; returns result via one-time listener
+    requestTool: (
+      invokeId: string,
+      toolCallId: string,
+      name: string,
+      args: Record<string, unknown>
+    ): Promise<WebLLMToolResult> => {
+      return new Promise((resolve) => {
+        const resultChannel = `webllm:tool-result:${invokeId}:${toolCallId}`
+        ipcRenderer.once(resultChannel, (_: unknown, result: WebLLMToolResult) => {
+          resolve(result)
+        })
+        ipcRenderer.send("webllm:tool-request", { invokeId, toolCallId, name, arguments: args })
+      })
+    },
+    // Renderer → Main: send the final invoke result
+    sendInvokeResult: (result: WebLLMInvokeResult): void => {
+      ipcRenderer.send("webllm:invoke-result", result)
+    },
+    // Main → Renderer: listen for invoke requests
+    onInvoke: (callback: (payload: WebLLMInvokePayload) => void): (() => void) => {
+      const handler = (_: unknown, payload: WebLLMInvokePayload): void => callback(payload)
+      ipcRenderer.on("webllm:invoke", handler)
+      return () => ipcRenderer.removeListener("webllm:invoke", handler)
+    },
+    // Main → Renderer: listen for cancel requests
+    onCancel: (callback: (invokeId: string) => void): (() => void) => {
+      const handler = (_: unknown, invokeId: string): void => callback(invokeId)
+      ipcRenderer.on("webllm:cancel", handler)
+      return () => ipcRenderer.removeListener("webllm:cancel", handler)
     }
   }
 }

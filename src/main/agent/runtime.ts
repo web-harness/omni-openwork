@@ -78,6 +78,8 @@ function getModelInstance(modelId?: string): ChatOpenAI | string {
 
 import { RemoteGraph } from "@langchain/langgraph/remote"
 import type { RemoteAgentConfig } from "../types"
+import { isReady } from "../webllm/broker"
+import { WebLLMLesserAgentRunnable } from "../webllm/subagent"
 
 export interface CreateAgentRuntimeOptions {
   /** Thread ID - REQUIRED for per-thread checkpointing */
@@ -87,13 +89,15 @@ export interface CreateAgentRuntimeOptions {
   /** Workspace path - REQUIRED for agent to operate on files */
   workspacePath: string
   agentEndpoints?: RemoteAgentConfig[]
+  /** WebContents ID of the renderer window, used to gate lesser agent availability */
+  webContentsId?: number
 }
 
 // Create agent runtime with configured model and checkpointer
 export type AgentRuntime = ReturnType<typeof createDeepAgent>
 
 export async function createAgentRuntime(options: CreateAgentRuntimeOptions) {
-  const { threadId, modelId, workspacePath, agentEndpoints } = options
+  const { threadId, modelId, workspacePath, agentEndpoints, webContentsId } = options
 
   if (!threadId) {
     throw new Error("Thread ID is required for checkpointing.")
@@ -145,6 +149,18 @@ The workspace root is: ${workspacePath}`
       ...(ep.apiKey ? { apiKey: ep.apiKey } : {})
     })
   }))
+
+  // Append the built-in Hermes lesser agent only when the renderer window's worker is ready
+  if (webContentsId !== undefined && isReady(webContentsId)) {
+    debug("[Runtime] Hermes lesser agent is ready, appending to subagents")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(subagents as any[]).push({
+      name: "hermes-lesser-agent",
+      description:
+        "A lightweight local AI (Hermes-2-Pro-Llama-3-8B running in WebLLM) for summarization and lightweight tasks. Invoke with: <task>your task</task><allowed_tools>tool1,tool2</allowed_tools>",
+      runnable: new WebLLMLesserAgentRunnable(webContentsId, workspacePath)
+    })
+  }
 
   const agent = createDeepAgent({
     model,

@@ -70,3 +70,58 @@ export type IPCEvent =
   | IPCStreamEvent
   | IPCDoneEvent
   | IPCErrorEvent
+
+// =============================================================================
+// WebLLM Lesser Agent Types
+// =============================================================================
+
+export const WEBLLM_MODEL_ID = "Hermes-2-Pro-Llama-3-8B-q4f16_1-MLC"
+
+export type WebLLMPhase =
+  | "idle"
+  | "downloading"
+  | "loading"
+  | "ready"
+  | "busy"
+  | "error"
+  | "unsupported"
+
+export interface WebLLMStatus {
+  phase: WebLLMPhase
+  progress: number // 0-100
+  statusText: string
+  errorText?: string
+}
+
+export interface WebLLMAllowedTool {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+export interface WebLLMInvokePayload {
+  invokeId: string
+  task: string
+  allowedTools: WebLLMAllowedTool[]
+  workspacePath: string
+}
+
+export interface WebLLMToolRequest {
+  invokeId: string
+  toolCallId: string
+  name: string
+  arguments: Record<string, unknown>
+}
+
+export interface WebLLMToolResult {
+  invokeId: string
+  toolCallId: string
+  result: string
+  error?: string
+}
+
+export interface WebLLMInvokeResult {
+  invokeId: string
+  result?: string
+  error?: string
+}

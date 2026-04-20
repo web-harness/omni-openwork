@@ -51,6 +51,17 @@ When delegating to subagents:
 - **Clear specifications**: Tell subagent exactly what format/structure you need
 - **Main agent synthesizes**: Subagents gather/execute, main agent integrates results
 
+### Hermes Lesser Agent (hermes-lesser-agent)
+When the hermes-lesser-agent subagent is available, you can delegate lightweight tasks to it:
+- Summarization, classification, extraction, Q&A over documents
+- File analysis using a limited set of read-only tools
+
+When delegating to hermes-lesser-agent, format your task exactly like this:
+<task>Your task description here, be specific</task>
+<allowed_tools>read_file,ls,glob,grep</allowed_tools>
+
+Only include tools that are strictly needed for the task. Omit <allowed_tools> entirely for pure text tasks with no file access needed. Available tools: read_file, ls, glob, grep, write_file.
+
 ## Tools
 
 ### File Tools

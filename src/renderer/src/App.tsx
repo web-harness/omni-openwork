@@ -5,8 +5,10 @@ import { TabbedPanel, TabBar } from "@/components/tabs"
 import { RightPanel } from "@/components/panels/RightPanel"
 import { KanbanView, KanbanHeader } from "@/components/kanban"
 import { ResizeHandle } from "@/components/ui/resizable"
+import { GlobalStatusBar } from "@/components/status/GlobalStatusBar"
 import { useAppStore } from "@/lib/store"
 import { ThreadProvider } from "@/lib/thread-context"
+import { startWebLLMManager } from "@/lib/webllm/manager"
 import createDebug from "debug"
 
 const debug = createDebug("omni:app")
@@ -21,8 +23,14 @@ const RIGHT_MAX = 450
 const RIGHT_DEFAULT = 320
 
 function App(): React.JSX.Element {
-  const { currentThreadId, loadThreads, loadAgentEndpoints, showKanbanView, loadTheme } =
-    useAppStore()
+  const {
+    currentThreadId,
+    loadThreads,
+    loadAgentEndpoints,
+    showKanbanView,
+    loadTheme,
+    setWebLLMStatus
+  } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [leftWidth, setLeftWidth] = useState(LEFT_DEFAULT)
   const [rightWidth, setRightWidth] = useState(RIGHT_DEFAULT)
@@ -112,7 +120,17 @@ function App(): React.JSX.Element {
       }
     }
     init()
-  }, [loadThreads, loadAgentEndpoints, loadTheme])
+
+    // Start WebLLM manager independently – does NOT block app initialization
+    startWebLLMManager(
+      (status) =>
+        setWebLLMStatus(status.phase, status.progress, status.statusText, status.errorText),
+      (invokeId, toolCallId, name, args) =>
+        window.api.webllm.requestTool(invokeId, toolCallId, name, args)
+    ).catch((e) => {
+      debug("WebLLM manager start error:", e)
+    })
+  }, [loadThreads, loadAgentEndpoints, loadTheme, setWebLLMStatus])
 
   if (isLoading) {
     return (
@@ -124,87 +142,92 @@ function App(): React.JSX.Element {
 
   return (
     <ThreadProvider>
-      <div className="flex h-screen overflow-hidden bg-background">
-        {/* Agent Rail - fixed vertical dockbar */}
-        <AgentRail />
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <div className="flex flex-1 overflow-hidden">
+          {/* Agent Rail - fixed vertical dockbar */}
+          <AgentRail />
 
-        {/* Fixed app badge - zoom independent position and size */}
-        <div
-          className="app-badge"
-          style={{
-            // Compensate both position and scale for zoom
-            // Target screen position: top 14px, left 82px (just past traffic lights)
-            top: `${14 / zoomLevel}px`,
-            left: `${82 / zoomLevel}px`,
-            transform: `scale(${1 / zoomLevel})`,
-            transformOrigin: "top left"
-          }}
-        >
-          <span className="app-badge-name">OMNI OPENWORK</span>
-          <span className="app-badge-version">{__APP_VERSION__}</span>
-        </div>
+          {/* Fixed app badge - zoom independent position and size */}
+          <div
+            className="app-badge"
+            style={{
+              // Compensate both position and scale for zoom
+              // Target screen position: top 14px, left 82px (just past traffic lights)
+              top: `${14 / zoomLevel}px`,
+              left: `${82 / zoomLevel}px`,
+              transform: `scale(${1 / zoomLevel})`,
+              transformOrigin: "top left"
+            }}
+          >
+            <span className="app-badge-name">OMNI OPENWORK</span>
+            <span className="app-badge-version">{__APP_VERSION__}</span>
+          </div>
 
-        {/* Left + Center column */}
-        <div className="flex flex-col flex-1 min-w-0">
-          {/* Titlebar row with tabs integrated */}
-          <div className="flex h-9 w-full shrink-0 app-drag-region">
-            {/* Left section - spacer for traffic lights + badge (matches left sidebar width) */}
-            <div style={{ width: leftWidth }} className="shrink-0 bg-sidebar" />
+          {/* Left + Center column */}
+          <div className="flex flex-col flex-1 min-w-0">
+            {/* Titlebar row with tabs integrated */}
+            <div className="flex h-9 w-full shrink-0 app-drag-region">
+              {/* Left section - spacer for traffic lights + badge (matches left sidebar width) */}
+              <div style={{ width: leftWidth }} className="shrink-0 bg-sidebar" />
 
-            {/* Resize handle spacer */}
-            <div className="w-[1px] shrink-0" />
+              {/* Resize handle spacer */}
+              <div className="w-[1px] shrink-0" />
 
-            {/* Center section - Tab bar or Kanban header */}
-            <div className="flex-1 min-w-0 bg-background border-b border-border">
+              {/* Center section - Tab bar or Kanban header */}
+              <div className="flex-1 min-w-0 bg-background border-b border-border">
+                {showKanbanView ? (
+                  <KanbanHeader className="h-full" />
+                ) : (
+                  currentThreadId && <TabBar className="h-full border-b-0" />
+                )}
+              </div>
+            </div>
+
+            {/* Main content area */}
+            <div className="flex flex-1 overflow-hidden">
+              {/* Left Sidebar - Thread List */}
+              <div style={{ width: leftWidth }} className="shrink-0">
+                <ThreadSidebar />
+              </div>
+
+              <ResizeHandle onDrag={handleLeftResize} />
+
               {showKanbanView ? (
-                <KanbanHeader className="h-full" />
+                /* Kanban View - replaces center and right panels */
+                <main className="flex flex-1 flex-col min-w-0 overflow-hidden">
+                  <KanbanView />
+                </main>
               ) : (
-                currentThreadId && <TabBar className="h-full border-b-0" />
+                <>
+                  {/* Center - Content Panel (Agent Chat + File Viewer) */}
+                  <main className="flex flex-1 flex-col min-w-0 overflow-hidden">
+                    {currentThreadId ? (
+                      <TabbedPanel threadId={currentThreadId} showTabBar={false} />
+                    ) : (
+                      <div className="flex flex-1 items-center justify-center text-muted-foreground">
+                        Select or create a thread to begin
+                      </div>
+                    )}
+                  </main>
+                </>
               )}
             </div>
           </div>
 
-          {/* Main content area */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Left Sidebar - Thread List */}
-            <div style={{ width: leftWidth }} className="shrink-0">
-              <ThreadSidebar />
-            </div>
+          {!showKanbanView && (
+            <>
+              <ResizeHandle onDrag={handleRightResize} />
 
-            <ResizeHandle onDrag={handleLeftResize} />
-
-            {showKanbanView ? (
-              /* Kanban View - replaces center and right panels */
-              <main className="flex flex-1 flex-col min-w-0 overflow-hidden">
-                <KanbanView />
-              </main>
-            ) : (
-              <>
-                {/* Center - Content Panel (Agent Chat + File Viewer) */}
-                <main className="flex flex-1 flex-col min-w-0 overflow-hidden">
-                  {currentThreadId ? (
-                    <TabbedPanel threadId={currentThreadId} showTabBar={false} />
-                  ) : (
-                    <div className="flex flex-1 items-center justify-center text-muted-foreground">
-                      Select or create a thread to begin
-                    </div>
-                  )}
-                </main>
-              </>
-            )}
-          </div>
+              {/* Right Panel - Status Panels (full height) */}
+              <div style={{ width: rightWidth }} className="shrink-0">
+                <RightPanel />
+              </div>
+            </>
+          )}
         </div>
 
-        {!showKanbanView && (
-          <>
-            <ResizeHandle onDrag={handleRightResize} />
-
-            {/* Right Panel - Status Panels (full height) */}
-            <div style={{ width: rightWidth }} className="shrink-0">
-              <RightPanel />
-            </div>
-          </>
-        )}
+        {/* Global bottom status bar - always visible, spans full window width */}
+        <GlobalStatusBar />
       </div>
     </ThreadProvider>
   )

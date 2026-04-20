@@ -3,7 +3,7 @@ import createDebug from "debug"
 const debug = createDebug("omni:store")
 
 import { create } from "zustand"
-import type { Thread, ModelConfig, Provider, AgentEndpoint } from "@/types"
+import type { Thread, ModelConfig, Provider, AgentEndpoint, WebLLMPhase } from "@/types"
 
 function buildMainAgent(): AgentEndpoint {
   return {
@@ -36,6 +36,19 @@ interface AppState {
   // Kanban view state
   showKanbanView: boolean
   showSubagentsInKanban: boolean
+
+  // WebLLM lesser agent lifecycle
+  webllmPhase: WebLLMPhase
+  webllmProgress: number
+  webllmStatusText: string
+  webllmErrorText: string | undefined
+  webllmReady: boolean
+  setWebLLMStatus: (
+    phase: WebLLMPhase,
+    progress: number,
+    statusText: string,
+    errorText?: string
+  ) => void
 
   // Agent endpoints
   agentEndpoints: AgentEndpoint[]
@@ -96,6 +109,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   sidebarCollapsed: false,
   showKanbanView: false,
   showSubagentsInKanban: true,
+  webllmPhase: "idle",
+  webllmProgress: 0,
+  webllmStatusText: "Not started",
+  webllmErrorText: undefined,
+  webllmReady: false,
+  setWebLLMStatus: (phase, progress, statusText, errorText) =>
+    set({
+      webllmPhase: phase,
+      webllmProgress: progress,
+      webllmStatusText: statusText,
+      webllmErrorText: errorText,
+      webllmReady: phase === "ready"
+    }),
   agentEndpoints: [buildMainAgent()],
   activeAgentId: null,
   dicebearStyle: "bottts-neutral",
